@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VITA Detection — Service Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0a1f5c;--navy2:#1a3a7a;--blue:#1a56db;--blue-light:#eff6ff;--blue-mid:#dbeafe;
+  --green:#0a7c4e;--green-light:#ecfdf5;--red:#b91c1c;--red-light:#fef2f2;
+  --amber:#b45309;--amber-light:#fffbeb;
+  --gray:#64748b;--gray2:#94a3b8;--gray-light:#f8fafc;--gray-border:#e2e8f0;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);--shadow-lg:0 10px 40px rgba(0,0,0,.18);
+  --radius:8px;--radius-lg:12px;--radius-xl:16px;--font:'DM Sans',sans-serif;
+}
+body{font-family:var(--font);background:#f1f5f9;color:#1e293b;min-height:100vh;}
+
+/* LOADING */
+.loading-screen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+.loading-screen svg{margin-bottom:24px;}
+.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;}
+.loading-msg{color:rgba(255,255,255,.7);font-size:14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* AUTH */
+.auth-wrap{min-height:100vh;background:linear-gradient(160deg,var(--navy) 0%,#1e3a8a 50%,#0f2459 100%);display:flex;align-items:center;justify-content:center;}
+.auth-card{background:#fff;border-radius:var(--radius-xl);padding:44px 40px;width:420px;box-shadow:var(--shadow-lg);}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-logo p{font-size:11px;color:var(--gray2);letter-spacing:1.5px;text-transform:uppercase;margin-top:6px;}
+.auth-title{font-size:22px;font-weight:700;color:var(--navy);text-align:center;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--gray);text-align:center;margin-bottom:24px;}
+.auth-input{display:block;width:100%;padding:11px 14px;font-size:14px;border-radius:var(--radius);border:1.5px solid var(--gray-border);margin-bottom:12px;font-family:var(--font);color:#1e293b;}
+.auth-input:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+.auth-btn{width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .2s;}
+.auth-btn:hover{background:var(--navy2);}
+.auth-err{background:var(--red-light);color:var(--red);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:12px;border:1px solid #fca5a5;}
+.auth-ok{background:var(--green-light);color:var(--green);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:12px;border:1px solid #6ee7b7;}
+
+/* LAYOUT */
+.app{display:flex;min-height:100vh;}
+.sidebar{width:230px;min-width:230px;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
+.sidebar-logo{padding:22px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sidebar-logo-sub{display:block;font-size:9px;color:rgba(255,255,255,.3);margin-top:5px;letter-spacing:1.8px;text-transform:uppercase;}
+.nav-label{padding:14px 18px 5px;font-size:9.5px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:7px;margin:1px 8px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;transition:all .15s;user-select:none;}
+.nav-item:hover{background:rgba(255,255,255,.1);color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.16);color:#fff;font-weight:600;}
+.nav-badge{margin-left:auto;background:rgba(239,68,68,.9);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;}
+.sidebar-footer{margin-top:auto;padding:14px 8px;border-top:1px solid rgba(255,255,255,.08);}
+.user-pill{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;color:rgba(255,255,255,.8);font-size:12px;}
+.user-pill:hover{background:rgba(255,255,255,.08);}
+.avatar{border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;}
+.main{margin-left:230px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{background:#fff;padding:0 28px;height:58px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--gray-border);position:sticky;top:0;z-index:50;}
+.topbar-title{font-size:16px;font-weight:700;color:var(--navy);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.notif-wrap{position:relative;}
+.notif-btn{width:36px;height:36px;border-radius:var(--radius);border:1px solid var(--gray-border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:2px solid #fff;}
+.sync-indicator{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray);padding:4px 10px;border-radius:20px;border:1px solid var(--gray-border);}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.content{padding:24px 28px;flex:1;}
+
+/* COMPONENTS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;font-size:13px;font-weight:500;font-family:var(--font);transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--navy);color:#fff;}.btn-primary:hover{background:var(--navy2);}
+.btn-secondary{background:#fff;color:var(--navy);border:1px solid var(--gray-border);}.btn-secondary:hover{background:var(--gray-light);}
+.btn-danger{background:var(--red);color:#fff;}.btn-success{background:var(--green);color:#fff;}
+.btn-sm{padding:5px 12px;font-size:12px;}.btn-xs{padding:3px 8px;font-size:11px;}
+.card{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:20px;}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.card-title{font-size:14px;font-weight:700;color:var(--navy);}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.modal{background:#fff;border-radius:var(--radius-xl);width:100%;max-width:660px;box-shadow:var(--shadow-lg);}
+.modal-lg{max-width:860px;}
+.modal-header{padding:18px 24px;border-bottom:1px solid var(--gray-border);display:flex;justify-content:space-between;align-items:center;border-radius:var(--radius-xl) var(--radius-xl) 0 0;background:#fff;}
+.modal-header h3{font-size:16px;font-weight:700;color:var(--navy);}
+.modal-close{width:30px;height:30px;border-radius:var(--radius);border:1px solid var(--gray-border);background:#fff;cursor:pointer;font-size:16px;color:var(--gray);display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{background:var(--gray-light);}
+.modal-body{padding:24px;}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--gray-border);display:flex;gap:8px;justify-content:flex-end;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.fg label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+.fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:var(--radius);font-size:13px;font-family:var(--font);color:#1e293b;background:#fff;transition:border .15s;width:100%;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(26,86,219,.08);}
+.fg textarea{resize:vertical;min-height:72px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.b-open{background:#dbeafe;color:#1e40af;}.b-progress{background:#fef3c7;color:#92400e;}
+.b-resolved{background:#d1fae5;color:#065f46;}.b-closed{background:#e0e7ff;color:#3730a3;}
+.b-pending{background:#fee2e2;color:#991b1b;}
+.b-admin{background:#fde8e8;color:#9b1c1c;}.b-tech{background:#d1fae5;color:#065f46;}
+.b-accounting{background:#fff3e0;color:#92400e;}.b-manager{background:#e0e7ff;color:#4c1d95;}
+.b-viewer{background:#f1f5f9;color:#475569;}
+.b-crit{background:#fee2e2;color:#991b1b;}.b-noncrit{background:#fef9c3;color:#713f12;}
+.b-green{background:#d1fae5;color:#065f46;}.b-amber{background:#fef3c7;color:#92400e;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+table th{text-align:left;padding:10px 14px;background:#f8fafc;font-size:10.5px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid var(--gray-border);}
+table td{padding:10px 14px;border-bottom:1px solid #f0f4f8;color:#374151;vertical-align:middle;}
+table tr:hover td{background:#fafbfc;}
+.tbl-actions{display:flex;gap:5px;}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.sh-title{font-size:15px;font-weight:700;color:var(--navy);}
+.stat-card{background:#fff;border-radius:var(--radius-lg);padding:18px 22px;box-shadow:var(--shadow);}
+.stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;float:right;}
+.stat-lbl{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+.stat-val{font-size:30px;font-weight:700;color:var(--navy);margin:4px 0 2px;}
+.stat-sub{font-size:12px;color:var(--gray2);}
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-bar input,.filter-bar select{padding:7px 11px;border:1.5px solid var(--gray-border);border-radius:var(--radius);font-size:13px;font-family:var(--font);}
+.tab-bar{display:flex;border-bottom:2px solid var(--gray-border);margin-bottom:20px;}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.tab.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:700;}
+.tl-item{display:flex;gap:12px;padding:8px 0;position:relative;}
+.tl-item:not(:last-child)::after{content:'';position:absolute;left:5px;top:20px;bottom:-4px;width:1.5px;background:var(--gray-border);}
+.tl-dot{width:12px;height:12px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:3px;border:2px solid #fff;box-shadow:0 0 0 2px var(--blue);}
+.tl-text{font-size:13px;color:#374151;}.tl-time{font-size:11px;color:var(--gray2);margin-top:2px;}
+.cmt-box{background:#f8fafc;border-radius:var(--radius);padding:14px;margin-bottom:10px;border-left:3px solid var(--blue-mid);}
+.cmt-user{font-weight:700;font-size:12px;color:var(--navy);}
+.cmt-time{font-size:11px;color:var(--gray2);}
+.cmt-text{font-size:13px;color:#374151;line-height:1.5;margin-top:4px;}
+.tdg{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;}
+.tdf label{font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;display:block;}
+.tdf p{font-size:13px;color:#1e293b;margin-top:3px;}
+.np{position:absolute;right:0;top:48px;width:340px;background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);border:1px solid var(--gray-border);z-index:300;overflow:hidden;}
+.np-hdr{padding:12px 16px;border-bottom:1px solid var(--gray-border);font-size:13px;font-weight:700;color:var(--navy);display:flex;justify-content:space-between;align-items:center;}
+.np-item{padding:12px 16px;border-bottom:1px solid #f0f4f8;cursor:pointer;}
+.np-item:hover{background:var(--gray-light);}
+.np-item.unread{background:var(--blue-light);}
+.ptoggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f4f8;}
+.toggle{width:38px;height:22px;background:var(--gray-border);border-radius:11px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--green);}
+.toggle-k{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle.on .toggle-k{transform:translateX(16px);}
+.es{text-align:center;padding:48px 24px;color:var(--gray);}
+.es-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
+.wok{color:var(--green);font-weight:600;}.wam{color:var(--amber);font-weight:600;}.wex{color:var(--red);font-weight:600;}
+.info-banner{padding:10px 14px;border-radius:var(--radius);font-size:12px;margin-bottom:14px;border:1px solid;}
+.info-amber{background:var(--amber-light);color:var(--amber);border-color:#fcd34d;}
+.info-red{background:var(--red-light);color:var(--red);border-color:#fca5a5;}
+.info-green{background:var(--green-light);color:var(--green);border-color:#6ee7b7;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// -- CONFIG --------------------------------------------------------------------
+const BIN_ID = '69fcb79eadc21f119a695a77';
+const API_KEY = '$2a$10$zAa/3QkSe.c6YGM9owPbl.x48Ow7Hop697MzmTbtNt69ztlJtXu9K';
+const BASE_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+const LS_KEY = 'vita_portal_db';
+
+// -- STORAGE: JSONBin primary, localStorage fallback ---------------------------
+const Api = {
+  async read() {
+    try {
+      const r = await fetch(BASE_URL + '/latest', {
+        headers: { 'X-Master-Key': API_KEY }
+      });
+      if (r.ok) {
+        const j = await r.json();
+        if (j.record) {
+          // Mirror to localStorage
+          localStorage.setItem(LS_KEY, JSON.stringify(j.record));
+          return j.record;
+        }
+      }
+    } catch(e) {}
+    // Fallback to localStorage
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+    return null;
+  },
+  async write(data) {
+    // Always save to localStorage immediately
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    // Then try to sync to JSONBin in background
+    try {
+      await fetch(BASE_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+        body: JSON.stringify(data)
+      });
+    } catch(e) {}
+    return true;
+  },
+  isCloud() {
+    try {
+      return !!localStorage.getItem(LS_KEY + '_cloud_ok');
+    } catch(e) { return false; }
+  }
+};
+
+// -- DEFAULT DATA STRUCTURE -----------------------------------------------------
+const EMPTY_DB = {
+  users: [
+    {id:1,name:'Admin User',email:'admin@vita.com',password:'Admin@123',role:'Admin',active:true,
+     permissions:{tickets:true,machines:true,customers:true,users:true,reports:true,tools:true}},
+  ],
+  customers: [], machines: [], tickets: [], tools: [], notifications: [], parts: [], rma: [], ticketCosts: [],
+  lists: {
+    ticketTypes:['Corrective Maintenance / Service','Preventive Maintenance','Installation','Radiation Survey','Relocation','Training'],
+    ticketStatuses:['Open','In Progress','Resolved - Pending Parts','Resolved - Pending Payment','Resolved - Pending Visit','Resolved - Parts Sent','Resolved - Pending PO','Resolved - Pending S/W','Resolved - Pending Remote Session','Resolved','Closed'],
+    resolutionTypes:['Remote - TeamViewer','Phone','Email','Text/SMS','Dispatch Tech','Parts Sent'],
+    severities:['Critical','Non-Critical'],
+    machineStatuses:['Operational','Non-Operational','Partially Operational'],
+    categories:['Software','Hardware','Network','Mechanical','Electrical','Other'],
+    subCategories:['Biosans Software','Operating System','X-Ray Generator','Conveyor','Photo Sensors','Display','Power Supply','Other'],
+    reportedBy:['Customer','VITA Team','Internal'],
+    countries:['Lebanon','UAE','Saudi Arabia','Turkey','United States','Canada','United Kingdom','Australia','Germany','France','Other'],
+    models:['XR3D-4','XR3D-6D','XR3D-60','XR3D-100BD','XR3D-55i'],
+    paymentTerms:['Prepaid','Postpaid','Net 30 Days','Net 60 Days','Net 90 Days'],
+    roles:['Admin','Tech','Accounting','Manager','Viewer'],
+    partCategories:['X-Ray Generator','Conveyor System','Control Board','Power Supply','Photo Sensors','Display','Cooling System','Detector','Software License','Other'],
+    partConditions:['New','Refurbished','Used'],
+    rmaStatuses:['Pending Approval','Approved','Part Sent to Customer','Part Received from Customer','Under Repair','Replaced','Closed','Rejected'],
+    rmaReasons:['Defective - Under Warranty','Defective - Out of Warranty','Wrong Part Shipped','Customer Return','Upgrade','Exchange'],
+    currencies:['USD','EUR','GBP','CAD','AED','SAR','TRY','LBP'],
+    warehouses:['Main Warehouse','Canada Office','UAE Office','Customer Site'],
+  }
+};
+const PERMS = ['tickets','machines','customers','users','reports','tools','parts','rma'];
+
+// -- HELPERS -------------------------------------------------------------------
+const now = () => new Date().toISOString().slice(0,16).replace('T',' ');
+const today = () => new Date().toISOString().slice(0,10);
+const fmtDate = d => { if(!d)return'—'; try{return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}catch{return d;} };
+const nextId = arr => arr && arr.length ? Math.max(...arr.map(x=>x.id||0))+1 : 1;
+const initials = n => (n||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const sc = s => s==='Open'?'b-open':s==='In Progress'?'b-progress':s==='Closed'?'b-closed':'b-resolved';
+const rc = r => r==='Admin'?'b-admin':r==='Tech'?'b-tech':r==='Accounting'?'b-accounting':r==='Manager'?'b-manager':'b-viewer';
+
+// -- REACT SETUP ---------------------------------------------------------------
+const {createElement:h, useState, useEffect, useRef, useCallback} = React;
+
+// -- SVG ICON ------------------------------------------------------------------
+const ICONS = {
+  home:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10',
+  ticket:'M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z',
+  machine:'M2 3h20v14H2z M8 21h8 M12 17v4',
+  crm:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75',
+  users:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z',
+  tool:'M14.7 6.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-2-2a1 1 0 010-1.4l8-8a1 1 0 011.4 0l2 2z M15 5L19 1 23 5l-4 4',
+  report:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8',
+  bell:'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 01-3.46 0',
+  plus:'M12 5v14 M5 12h14',
+  edit:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7 M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z',
+  trash:'M3 6h18 M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6 M10 11v6 M14 11v6 M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2',
+  eye:'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 100 6 3 3 0 000-6z',
+  logout:'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9',
+  settings:'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z',
+  refresh:'M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0114.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0020.49 15',
+  parts:'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01',
+  rma:'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12',
+  dollar:'M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
+};
+function Icon({name,size=18,style={}}) {
+  const d = ICONS[name]||'';
+  return h('svg',{viewBox:'0 0 24 24',width:size,height:size,fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round',style:{flexShrink:0,...style}},
+    d.split(' M').map((seg,i)=>h('path',{key:i,d:(i===0?'':' M')+seg}))
+  );
+}
+
+// -- VITA LOGO -----------------------------------------------------------------
+function VitaLogo({dark,width=130}) {
+  const h2 = width * 48/130;
+  return h('svg',{viewBox:'0 0 130 48',width,height:h2},
+    h('text',{x:'0',y:'40',fontFamily:'DM Sans,sans-serif',fontSize:'44',fontWeight:'700',fill:dark?'#0a1f5c':'#fff',letterSpacing:'-2'},'VITA'),
+    h('text',{x:'2',y:'48',fontFamily:'DM Sans,sans-serif',fontSize:'9',fontWeight:'500',fill:dark?'#64748b':'rgba(255,255,255,.4)',letterSpacing:'3.5'},'DETECTION')
+  );
+}
+
+// -- SMART SELECT --------------------------------------------------------------
+function SmartSelect({listKey, value, onChange, db, onDbChange, placeholder='— Select —', allowEmpty=true}) {
+  const [adding, setAdding] = useState(false);
+  const [nv, setNv] = useState('');
+  const opts = (db.lists||{})[listKey] || [];
+
+  const doAdd = () => {
+    if (!nv.trim()) return;
+    const updated = {...db, lists:{...db.lists, [listKey]:[...opts, nv.trim()]}};
+    onDbChange(updated, true);
+    onChange(nv.trim());
+    setNv(''); setAdding(false);
+  };
+
+  return h('div',null,
+    h('select',{value:value||'',onChange:e=>{
+      if(e.target.value==='__add__'){setAdding(true);}
+      else{onChange(e.target.value);}
+    }},
+      allowEmpty && h('option',{value:''},placeholder),
+      opts.map(o=>h('option',{key:o,value:o},o)),
+      h('option',{value:'__add__'},'+ Add new option...')
+    ),
+    adding && h('div',{style:{display:'flex',gap:6,marginTop:6}},
+      h('input',{type:'text',value:nv,onChange:e=>setNv(e.target.value),placeholder:'New option...',autoFocus:true,
+        onKeyDown:e=>{if(e.key==='Enter')doAdd();if(e.key==='Escape'){setAdding(false);setNv('');}},
+        style:{flex:1,padding:'7px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}}),
+      h('button',{type:'button',className:'btn btn-primary btn-sm',onClick:doAdd},'Add'),
+      h('button',{type:'button',className:'btn btn-secondary btn-sm',onClick:()=>{setAdding(false);setNv('');}}, 'Cancel')
+    )
+  );
+}
+
+// -- FG SHORTCUT ---------------------------------------------------------------
+const FG = ({label,children}) => h('div',{className:'fg'},h('label',null,label),children);
+
+// -- NOTIFICATIONS -------------------------------------------------------------
+function NotifPanel({db, userId, onClose, onDbChange}) {
+  const all = db.notifications||[];
+  const mine = userId===1 ? all : all.filter(n=>n.userId===userId);
+  const markAll = () => {
+    const updated = {...db, notifications: all.map(n=>({...n,read:true}))};
+    onDbChange(updated, true);
+    onClose();
+  };
+  return h('div',{className:'np'},
+    h('div',{className:'np-hdr'},
+      h('span',null,'Notifications ('+mine.filter(n=>!n.read).length+' new)'),
+      h('button',{className:'btn btn-xs btn-secondary',onClick:markAll},'Mark all read')
+    ),
+    mine.length===0
+      ? h('div',{style:{padding:'20px',textAlign:'center',color:'var(--gray)',fontSize:13}},'No notifications')
+      : mine.slice(0,12).map(n=>h('div',{key:n.id,className:'np-item'+(n.read?'':' unread')},
+          h('div',{style:{fontWeight:600,fontSize:13}},n.title),
+          h('div',{style:{fontSize:12,color:'var(--gray)',marginTop:2}},n.body),
+          h('div',{style:{fontSize:11,color:'var(--gray2)',marginTop:3}},n.date)
+        ))
+  );
+}
+
+// -- DASHBOARD -----------------------------------------------------------------
+function Dashboard({db, user}) {
+  const {tickets=[],machines=[],customers=[]} = db;
+  const open = tickets.filter(t=>t.status==='Open').length;
+  const prog = tickets.filter(t=>t.status==='In Progress').length;
+  const res  = tickets.filter(t=>t.status&&t.status.startsWith('Resolved')).length;
+  const cls  = tickets.filter(t=>t.status==='Closed').length;
+  const recent = [...tickets].reverse().slice(0,5);
+
+  return h('div',null,
+    h('div',{style:{marginBottom:20}},
+      h('p',{style:{fontSize:13,color:'var(--gray)'}},'Welcome back, '+user.name),
+      h('h1',{style:{fontSize:22,fontWeight:700,color:'var(--navy)'}},'Operations Dashboard')
+    ),
+    h('div',{className:'grid-4',style:{marginBottom:20}},
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#dbeafe'}},'🎫'),h('div',{className:'stat-lbl'},'Open'),h('div',{className:'stat-val'},open),h('div',{className:'stat-sub'},'Needs attention')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#fef3c7'}},'⚙️'),h('div',{className:'stat-lbl'},'In Progress'),h('div',{className:'stat-val'},prog),h('div',{className:'stat-sub'},'Being worked on')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#d1fae5'}},'✅'),h('div',{className:'stat-lbl'},'Resolved'),h('div',{className:'stat-val'},res),h('div',{className:'stat-sub'},'Pending closure')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#e0e7ff'}},'🏭'),h('div',{className:'stat-lbl'},'Machines'),h('div',{className:'stat-val'},machines.length),h('div',{className:'stat-sub'},customers.length+' customers'))
+    ),
+    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}},
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'Recent Tickets')),
+        recent.length===0
+          ? h('div',{className:'es'},h('div',{className:'es-icon'},'🎫'),h('p',null,'No tickets yet'))
+          : h('table',null,
+              h('thead',null,h('tr',null,h('th',null,'Ticket'),h('th',null,'Type'),h('th',null,'Status'),h('th',null,'Date'))),
+              h('tbody',null,recent.map(t=>h('tr',{key:t.id},
+                h('td',null,h('strong',null,t.ticketNumber)),
+                h('td',null,(t.ticketType||'').split('/')[0].trim()),
+                h('td',null,h('span',{className:'badge '+sc(t.status)},t.status)),
+                h('td',null,fmtDate(t.contactDate))
+              )))
+            )
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'Status Breakdown')),
+        [['Open',open,'#1e40af'],['In Progress',prog,'#92400e'],['Resolved',res,'#065f46'],['Closed',cls,'#3730a3']].map(([lbl,cnt,color])=>
+          h('div',{key:lbl,style:{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid #f0f4f8'}},
+            h('div',{style:{width:10,height:10,borderRadius:'50%',background:color,flexShrink:0}}),
+            h('div',{style:{flex:1,fontSize:13}},lbl),
+            h('div',{style:{fontWeight:700,fontSize:13,minWidth:24,textAlign:'right'}},cnt),
+            h('div',{style:{flex:2,background:'#f1f5f9',borderRadius:4,height:6,overflow:'hidden',marginLeft:8}},
+              h('div',{style:{width:(tickets.length?Math.round(cnt/tickets.length*100):0)+'%',height:'100%',background:color,borderRadius:4}})
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// -- TICKET FORM ---------------------------------------------------------------
+function TicketForm({ticket, db, onSave, onClose, user, onDbChange}) {
+  const {machines=[],customers=[],users=[]} = db;
+  const blank = {
+    contactDate:today(),serialNumber:'',machineId:'',status:'Open',ticketType:'',
+    reportedBy:'',assignedTo:'',dispatchTech:'',etaDate:'',severity:'',machineStatus:'',
+    resolutionBy:'',category:'',subCategory:'',reportedProblem:'',actualProblem:'',
+    actionTaken:'',customerPO:'',quotationNumber:'',quotationAmount:'',
+    customerName:'',customerEmail:'',customerPhone:'',
+    labourCost:'',partsCost:'',travelCost:'',sellingPrice:'',invoiceNumber:'',chargeable:'No',
+    comments:[],timeline:[],createdBy:user.id,createdAt:today()
+  };
+  const [form, setForm] = useState(ticket?{...ticket}:blank);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const pickMachine = id => {
+    const m = machines.find(x=>x.id===parseInt(id));
+    if (m) {
+      const c = customers.find(x=>x.id===m.customerId);
+      setForm(f=>({...f,machineId:id,serialNumber:m.serialNumber,
+        customerName:c?c.name:'',customerEmail:c?c.email:'',customerPhone:c?c.phone:''}));
+    } else { set('machineId',id); }
+  };
+
+  const save = () => {
+    if (!form.serialNumber||!form.ticketType||!form.status) {
+      alert('Please fill: Serial Number, Ticket Type, Status'); return;
+    }
+    const all = db.tickets||[];
+    const tl = [...(form.timeline||[]),{action:ticket?'Updated':'Created',user:user.name,date:now()}];
+    let updated;
+    if (ticket) {
+      updated = {...db, tickets: all.map(t=>t.id===ticket.id?{...form,timeline:tl}:t)};
+    } else {
+      const newId=nextId(all);
+      const nt = {...form,id:newId,ticketNumber:'TKN-'+(1000+newId),timeline:tl,comments:[]};
+      let notifs = db.notifications||[];
+      if (form.assignedTo) {
+        notifs = [...notifs,{id:nextId(notifs),userId:parseInt(form.assignedTo),
+          title:nt.ticketNumber+' assigned to you',body:'Assigned by '+user.name,date:now(),read:false}];
+      }
+      updated = {...db, tickets:[...all,nt], notifications:notifs};
+    }
+    onDbChange(updated, true);
+    onSave();
+  };
+
+  const S = ({lk,val,setter}) => h(SmartSelect,{listKey:lk,value:val,onChange:setter,db,onDbChange});
+  const techUsers = (users||[]).filter(u=>u.role==='Tech'||u.role==='Admin');
+
+  return h('div',{className:'modal-bg'},
+    h('div',{className:'modal modal-lg'},
+      h('div',{className:'modal-header'},
+        h('h3',null,ticket?'Edit '+ticket.ticketNumber:'New Ticket'),
+        h('button',{className:'modal-close',onClick:onClose},'✕')
+      ),
+      h('div',{className:'modal-body'},
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Contact Date *'},h('input',{type:'date',value:form.contactDate||'',onChange:e=>set('contactDate',e.target.value)})),
+          h(FG,{label:'Machine'},
+            h('select',{value:form.machineId||'',onChange:e=>pickMachine(e.target.value)},
+              h('option',{value:''},'— Select Machine —'),
+              machines.map(m=>h('option',{key:m.id,value:m.id},m.serialNumber+' — '+m.model+' ('+m.location+')'))
+            )
+          ),
+          h(FG,{label:'Serial Number *'},h('input',{type:'text',value:form.serialNumber||'',onChange:e=>set('serialNumber',e.target.value)}))
+        ),
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Status *'},h(S,{lk:'ticketStatuses',val:form.status,setter:v=>set('status',v)})),
+          h(FG,{label:'Ticket Type *'},h(S,{lk:'ticketTypes',val:form.ticketType,setter:v=>set('ticketType',v)})),
+          h(FG,{label:'Reported By'},h(S,{lk:'reportedBy',val:form.reportedBy,setter:v=>set('reportedBy',v)}))
+        ),
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Assigned To'},
+            h('select',{value:form.assignedTo||'',onChange:e=>set('assignedTo',e.target.value)},
+              h('option',{value:''},'— Select —'),
+              (users||[]).map(u=>h('option',{key:u.id,value:u.id},u.name))
+            )
+          ),
+          h(FG,{label:'Severity'},h(S,{lk:'severities',val:form.severity,setter:v=>set('severity',v)})),
+          h(FG,{label:'Machine Status'},h(S,{lk:'machineStatuses',val:form.machineStatus,setter:v=>set('machineStatus',v)}))
+        ),
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Resolution By'},h(S,{lk:'resolutionTypes',val:form.resolutionBy,setter:v=>set('resolutionBy',v)})),
+          h(FG,{label:'Dispatch Tech'},
+            h('select',{value:form.dispatchTech||'',onChange:e=>set('dispatchTech',e.target.value)},
+              h('option',{value:''},'— None —'),
+              techUsers.map(u=>h('option',{key:u.id,value:u.id},u.name))
+            )
+          ),
+          h(FG,{label:'ETA Date'},h('input',{type:'date',value:form.etaDate||'',onChange:e=>set('etaDate',e.target.value)}))
+        ),
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Category'},h(S,{lk:'categories',val:form.category,setter:v=>set('category',v)})),
+          h(FG,{label:'Sub Category'},h(S,{lk:'subCategories',val:form.subCategory,setter:v=>set('subCategory',v)})),
+          h(FG,{label:'Customer PO'},h('input',{type:'text',value:form.customerPO||'',onChange:e=>set('customerPO',e.target.value)}))
+        ),
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Customer Name'},h('input',{type:'text',value:form.customerName||'',onChange:e=>set('customerName',e.target.value)})),
+          h(FG,{label:'Customer Email'},h('input',{type:'email',value:form.customerEmail||'',onChange:e=>set('customerEmail',e.target.value)})),
+          h(FG,{label:'Customer Phone'},h('input',{type:'tel',value:form.customerPhone||'',onChange:e=>set('customerPhone',e.target.value)}))
+        ),
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Quotation #'},h('input',{type:'text',value:form.quotationNumber||'',onChange:e=>set('quotationNumber',e.target.value)})),
+          h(FG,{label:'Quotation Amount'},h('input',{type:'text',value:form.quotationAmount||'',onChange:e=>set('quotationAmount',e.target.value)})),
+          h('div',null)
+        ),
+        h(FG,{label:'Reported Problem *'},h('textarea',{value:form.reportedProblem||'',onChange:e=>set('reportedProblem',e.target.value),rows:2})),
+        h('div',{className:'grid-2'},
+          h(FG,{label:'Actual Problem'},h('textarea',{value:form.actualProblem||'',onChange:e=>set('actualProblem',e.target.value),rows:2})),
+          h(FG,{label:'Action Taken'},h('textarea',{value:form.actionTaken||'',onChange:e=>set('actionTaken',e.target.value),rows:2}))
+        )
+      ),
+      h('div',{className:'modal-footer'},
+        h('button',{className:'btn btn-secondary',onClick:onClose},'Cancel'),
+        h('button',{className:'btn btn-primary',onClick:save},ticket?'Save Changes':'Create Ticket')
+      )
+    )
+  );
+}
+
+// -- TICKET DETAIL -------------------------------------------------------------
+function TicketDetail({ticketId, db, onClose, onEdit, user, onDbChange}) {
+  const [tab, setTab] = useState('details');
+  const [comment, setComment] = useState('');
+  const t = (db.tickets||[]).find(x=>x.id===ticketId);
+  if (!t) return null;
+  const machine = (db.machines||[]).find(m=>m.id===parseInt(t.machineId));
+  const assignedUser = (db.users||[]).find(u=>u.id===parseInt(t.assignedTo));
+
+  const postComment = () => {
+    if (!comment.trim()) return;
+    const nc = {userId:user.id,userName:user.name,text:comment,date:now()};
+    const tickets = (db.tickets||[]).map(tk=>tk.id===t.id
+      ? {...tk,comments:[...(tk.comments||[]),nc],timeline:[...(tk.timeline||[]),{action:user.name+' commented',user:user.name,date:now()}]}
+      : tk);
+    let notifs = db.notifications||[];
+    if (t.assignedTo && parseInt(t.assignedTo)!==user.id) {
+      notifs = [...notifs,{id:nextId(notifs),userId:parseInt(t.assignedTo),
+        title:'Comment on '+t.ticketNumber,body:user.name+': '+comment.slice(0,60),date:now(),read:false}];
+    }
+    onDbChange({...db,tickets,notifications:notifs},true);
+    setComment('');
+  };
+
+  return h('div',{className:'modal-bg'},
+    h('div',{className:'modal modal-lg'},
+      h('div',{className:'modal-header'},
+        h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+          h('h3',null,t.ticketNumber),
+          h('span',{className:'badge '+sc(t.status)},t.status)
+        ),
+        h('div',{style:{display:'flex',gap:8}},
+          h('button',{className:'btn btn-secondary btn-sm',onClick:()=>onEdit(t)},h(Icon,{name:'edit',size:13}),' Edit'),
+          h('button',{className:'modal-close',onClick:onClose},'✕')
+        )
+      ),
+      h('div',{style:{padding:'0 24px'}},
+        h('div',{className:'tab-bar'},
+          [['details','Details'],['comments','Comments ('+(t.comments||[]).length+')'],['timeline','Timeline']].map(([k,lbl])=>
+            h('div',{key:k,className:'tab'+(tab===k?' active':''),onClick:()=>setTab(k)},lbl)
+          )
+        )
+      ),
+      h('div',{className:'modal-body'},
+        tab==='details' && h('div',null,
+          h('div',{className:'tdg'},
+            ...[
+              ['Contact Date',fmtDate(t.contactDate)],['Serial Number',h('strong',null,t.serialNumber)],
+              ['Status',h('span',{className:'badge '+sc(t.status)},t.status)],['Ticket Type',t.ticketType||'—'],
+              ['Reported By',t.reportedBy||'—'],['Assigned To',assignedUser?assignedUser.name:'—'],
+              ['Model',machine?machine.model:'—'],['Biosans S/W',machine?machine.biosansVersion:'—'],
+              ['Warranty',machine?h('span',{className:parseInt(machine.warrantyDays)>0?'wok':'wex'},parseInt(machine.warrantyDays)>0?(machine.warrantyDays+' days left'):'Expired'):'—'],
+              ['Severity',t.severity||'—'],['Machine Status',t.machineStatus||'—'],['Resolution By',t.resolutionBy||'—'],
+              ['Category',t.category||'—'],['Sub Category',t.subCategory||'—'],
+              ['Customer PO',t.customerPO||'—'],['ETA Date',fmtDate(t.etaDate)],
+              ['Customer Name',t.customerName||'—'],['Customer Email',t.customerEmail||'—'],
+            ].map(([lbl,val])=>h('div',{key:lbl,className:'tdf'},h('label',null,lbl),h('p',null,val)))
+          ),
+          h('div',{style:{marginTop:14}}),
+          t.reportedProblem&&h('div',{className:'card',style:{marginBottom:10,background:'#f8fafc'}},h('div',{className:'card-title',style:{marginBottom:6}},'Reported Problem'),h('p',{style:{fontSize:13,color:'#374151'}},t.reportedProblem)),
+          t.actualProblem&&h('div',{className:'card',style:{marginBottom:10,background:'#f8fafc'}},h('div',{className:'card-title',style:{marginBottom:6}},'Actual Problem'),h('p',{style:{fontSize:13}},t.actualProblem)),
+          t.actionTaken&&h('div',{className:'card',style:{background:'#f0fdf4'}},h('div',{className:'card-title',style:{marginBottom:6}},'Action Taken'),h('p',{style:{fontSize:13}},t.actionTaken))
+        ),
+        tab==='comments' && h('div',null,
+          h('div',{style:{marginBottom:14}},
+            h('textarea',{value:comment,onChange:e=>setComment(e.target.value),placeholder:'Type comment...',rows:3,
+              style:{width:'100%',padding:'10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}}),
+            h('button',{className:'btn btn-primary btn-sm',style:{marginTop:6},onClick:postComment},'Post Comment')
+          ),
+          (t.comments||[]).length===0
+            ? h('div',{className:'es'},h('div',{className:'es-icon'},'💬'),h('p',null,'No comments yet'))
+            : (t.comments||[]).map((c,i)=>h('div',{key:i,className:'cmt-box'},
+                h('div',{style:{display:'flex',justifyContent:'space-between'}},
+                  h('span',{className:'cmt-user'},c.userName||'User #'+c.userId),
+                  h('span',{className:'cmt-time'},c.date)
+                ),
+                h('div',{className:'cmt-text'},c.text)
+              ))
+        ),
+        tab==='timeline' && h('div',null,
+          (t.timeline||[]).length===0
+            ? h('div',{className:'es'},h('p',null,'No events yet'))
+            : (t.timeline||[]).map((tl,i)=>h('div',{key:i,className:'tl-item'},
+                h('div',{className:'tl-dot'}),
+                h('div',null,h('div',{className:'tl-text'},tl.action),h('div',{className:'tl-time'},tl.user+' - '+tl.date))
+              ))
+        )
+      )
+    )
+  );
+}
+
+// -- TICKETS PAGE --------------------------------------------------------------
+function TicketsPage({db, user, onDbChange}) {
+  const [search,setSearch]=useState('');
+  const [fStatus,setFStatus]=useState('');
+  const [fType,setFType]=useState('');
+  const [showForm,setShowForm]=useState(false);
+  const [editT,setEditT]=useState(null);
+  const [viewId,setViewId]=useState(null);
+  const tickets = db.tickets||[];
+  const lists = db.lists||{};
+
+  const filtered = tickets.filter(t=>{
+    const s=search.toLowerCase();
+    return (!s||(t.ticketNumber||'').toLowerCase().includes(s)||(t.serialNumber||'').toLowerCase().includes(s)||(t.reportedProblem||'').toLowerCase().includes(s)||(t.customerName||'').toLowerCase().includes(s))
+      &&(!fStatus||t.status===fStatus)&&(!fType||t.ticketType===fType);
+  });
+
+  const del = id => {
+    if(!confirm('Delete ticket?')) return;
+    onDbChange({...db,tickets:tickets.filter(t=>t.id!==id)},true);
+  };
+
+  return h('div',null,
+    h('div',{className:'sh'},
+      h('div',{className:'sh-title'},'Tickets ('+filtered.length+')'),
+      h('button',{className:'btn btn-primary',onClick:()=>{setEditT(null);setShowForm(true);}},h(Icon,{name:'plus',size:14}),' New Ticket')
+    ),
+    h('div',{className:'filter-bar'},
+      h('input',{type:'text',placeholder:'Search ticket, S/N, customer...',value:search,onChange:e=>setSearch(e.target.value),style:{minWidth:220}}),
+      h('select',{value:fStatus,onChange:e=>setFStatus(e.target.value)},
+        h('option',{value:''},'All Statuses'),
+        (lists.ticketStatuses||[]).map(s=>h('option',{key:s,value:s},s))
+      ),
+      h('select',{value:fType,onChange:e=>setFType(e.target.value)},
+        h('option',{value:''},'All Types'),
+        (lists.ticketTypes||[]).map(s=>h('option',{key:s,value:s},s))
+      ),
+      h('button',{className:'btn btn-secondary',onClick:()=>{setSearch('');setFStatus('');setFType('');}}, 'Clear')
+    ),
+    h('div',{className:'card'},
+      filtered.length===0
+        ? h('div',{className:'es'},h('div',{className:'es-icon'},'🎫'),h('p',null,'No tickets found'))
+        : h('table',null,
+            h('thead',null,h('tr',null,
+              h('th',null,'Ticket #'),h('th',null,'Date'),h('th',null,'S/N'),h('th',null,'Type'),
+              h('th',null,'Status'),h('th',null,'Assigned'),h('th',null,'Severity'),h('th',null,'Actions')
+            )),
+            h('tbody',null,filtered.map(t=>{
+              const u=(db.users||[]).find(x=>x.id===parseInt(t.assignedTo));
+              return h('tr',{key:t.id},
+                h('td',null,h('strong',{style:{color:'var(--navy)',cursor:'pointer'},onClick:()=>setViewId(t.id)},t.ticketNumber)),
+                h('td',null,fmtDate(t.contactDate)),
+                h('td',null,t.serialNumber||'—'),
+                h('td',null,(t.ticketType||'').length>24?(t.ticketType||'').slice(0,24)+'...':t.ticketType||'—'),
+                h('td',null,h('span',{className:'badge '+sc(t.status)},t.status)),
+                h('td',null,u?u.name:'—'),
+                h('td',null,t.severity?h('span',{className:'badge '+(t.severity==='Critical'?'b-crit':'b-noncrit')},t.severity):'—'),
+                h('td',null,h('div',{className:'tbl-actions'},
+                  h('button',{className:'btn btn-secondary btn-xs',onClick:()=>setViewId(t.id)},h(Icon,{name:'eye',size:12})),
+                  h('button',{className:'btn btn-secondary btn-xs',onClick:()=>{setEditT(t);setShowForm(true);}},h(Icon,{name:'edit',size:12})),
+                  user.role==='Admin'&&h('button',{className:'btn btn-danger btn-xs',onClick:()=>del(t.id)},h(Icon,{name:'trash',size:12}))
+                ))
+              );
+            }))
+          )
+    ),
+    showForm&&h(TicketForm,{ticket:editT,db,user,onDbChange,
+      onClose:()=>{setShowForm(false);setEditT(null);},
+      onSave:()=>{setShowForm(false);setEditT(null);}}),
+    viewId&&h(TicketDetail,{ticketId:viewId,db,user,onDbChange,
+      onClose:()=>setViewId(null),
+      onEdit:t=>{setViewId(null);setEditT(t);setShowForm(true);}})
+  );
+}
+
+// -- MACHINES PAGE -------------------------------------------------------------
+function MachinesPage({db, user, onDbChange}) {
+  const [search,setSearch]=useState('');
+  const [showForm,setShowForm]=useState(false);
+  const [editM,setEditM]=useState(null);
+  const [form,setForm]=useState({});
+  const [importMsg,setImportMsg]=useState('');
+  const fileRef=useRef(null);
+  const machines=db.machines||[], customers=db.customers||[];
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const openForm=m=>{setEditM(m||null);setForm(m?{...m}:{serialNumber:'',model:'',biosansVersion:'',customerId:'',location:'',site:'',address:'',city:'',country:'',warrantyDays:365,status:'Operational',pcName:'',notes:''});setShowForm(true);};
+  const save=()=>{
+    if(!form.serialNumber||!form.model){alert('Serial Number and Model required');return;}
+    const all=machines;
+    const updated=editM?{...db,machines:all.map(m=>m.id===editM.id?{...form,id:editM.id}:m)}:{...db,machines:[...all,{...form,id:nextId(all)}]};
+    onDbChange(updated,true);setShowForm(false);
+  };
+  const del=id=>{if(!confirm('Delete machine?'))return;onDbChange({...db,machines:machines.filter(m=>m.id!==id)},true);};
+  const filtered=machines.filter(m=>{const s=search.toLowerCase();return !s||(m.serialNumber||'').toLowerCase().includes(s)||(m.model||'').toLowerCase().includes(s)||(m.location||'').toLowerCase().includes(s);});
+  const S=({lk,val,setter})=>h(SmartSelect,{listKey:lk,value:val,onChange:setter,db,onDbChange});
+
+  // Download CSV template
+  const downloadTemplate=()=>{
+    const headers=['serialNumber','model','biosansVersion','pcName','location','site','address','city','country','warrantyDays','status','notes'];
+    const example=['06DA-18357','XR3D-6D','2.0.4.6','PC-001','Turkish Airlines CIP','Main Entrance','Istanbul Airport','Istanbul','Turkey','365','Operational',''];
+    const csv=headers.join(',')+String.fromCharCode(10)+example.join(',');
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='machines_import_template.csv';
+    a.click();
+  };
+
+  // Parse and import CSV
+  const handleImport=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const lines=ev.target.result.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+        const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+        let added=0,skipped=0,updated=0;
+        let currentMachines=[...machines];
+        for(let i=1;i<lines.length;i++){
+          const vals=lines[i].split(',').map(v=>v.trim().replace(/"/g,'').replace(/\r/g,''));
+          if(vals.length<2)continue;
+          const row={};
+          headers.forEach((h,idx)=>row[h]=vals[idx]||'');
+          if(!row.serialNumber)continue;
+          // Match customer by name if provided
+          let customerId='';
+          if(row.customerName){
+            const c=customers.find(x=>x.name.toLowerCase()===row.customerName.toLowerCase());
+            if(c)customerId=c.id;
+          }
+          const existing=currentMachines.find(m=>m.serialNumber===row.serialNumber);
+          if(existing){
+            // Update existing
+            currentMachines=currentMachines.map(m=>m.serialNumber===row.serialNumber?{...m,...row,customerId:customerId||m.customerId,id:m.id}:m);
+            updated++;
+          } else {
+            currentMachines.push({...row,customerId,id:nextId(currentMachines),warrantyDays:parseInt(row.warrantyDays)||365,status:row.status||'Operational'});
+            added++;
+          }
+        }
+        onDbChange({...db,machines:currentMachines},true);
+        setImportMsg('✅ Import complete: '+added+' added, '+updated+' updated, '+skipped+' skipped.');
+        setTimeout(()=>setImportMsg(''),5000);
+      }catch(err){setImportMsg('❌ Error parsing CSV: '+err.message);}
+    };
+    reader.readAsText(file);
+    e.target.value='';
+  };
+
+  return h('div',null,
+    h('div',{className:'sh'},
+      h('div',{className:'sh-title'},'Machines / Scanners ('+filtered.length+')'),
+      h('div',{style:{display:'flex',gap:8}},
+        h('button',{className:'btn btn-secondary',onClick:downloadTemplate},'⬇ Template'),
+        h('button',{className:'btn btn-secondary',onClick:()=>fileRef.current.click()},'⬆ Import CSV'),
+        h('input',{type:'file',accept:'.csv',ref:fileRef,style:{display:'none'},onChange:handleImport}),
+        h('button',{className:'btn btn-primary',onClick:()=>openForm(null)},h(Icon,{name:'plus',size:14}),' Add Machine')
+      )
+    ),
+    importMsg&&h('div',{className:'info-banner '+(importMsg.startsWith('✅')?'info-green':'info-red'),style:{marginBottom:12}},importMsg),
+    h('div',{className:'filter-bar'},h('input',{type:'text',placeholder:'Search S/N, model, location...',value:search,onChange:e=>setSearch(e.target.value),style:{minWidth:260}})),
+    h('div',{className:'card'},
+      filtered.length===0?h('div',{className:'es'},h('div',{className:'es-icon'},'🖥️'),h('p',null,'No machines. Add one or import a CSV.')):
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Serial #'),h('th',null,'Model'),h('th',null,'Customer'),h('th',null,'Location'),h('th',null,'Biosans S/W'),h('th',null,'Warranty'),h('th',null,'Status'),h('th',null,'Actions'))),
+        h('tbody',null,filtered.map(m=>{
+          const c=customers.find(x=>x.id===m.customerId);
+          const wd=parseInt(m.warrantyDays)||0;
+          return h('tr',{key:m.id},
+            h('td',null,h('strong',null,m.serialNumber)),h('td',null,m.model),h('td',null,c?c.name:'—'),h('td',null,m.location||'—'),h('td',null,m.biosansVersion||'—'),
+            h('td',null,h('span',{className:wd>90?'wok':wd>0?'wam':'wex'},wd>0?(wd+' days'):'Expired')),
+            h('td',null,h('span',{className:'badge '+(m.status==='Operational'?'b-resolved':'b-pending')},m.status||'—')),
+            h('td',null,h('div',{className:'tbl-actions'},
+              h('button',{className:'btn btn-secondary btn-xs',onClick:()=>openForm(m)},h(Icon,{name:'edit',size:12})),
+              user.role==='Admin'&&h('button',{className:'btn btn-danger btn-xs',onClick:()=>del(m.id)},h(Icon,{name:'trash',size:12}))
+            ))
+          );
+        }))
+      )
+    ),
+    showForm&&h('div',{className:'modal-bg'},h('div',{className:'modal'},
+      h('div',{className:'modal-header'},h('h3',null,editM?'Edit Machine: '+editM.serialNumber:'Add Machine'),h('button',{className:'modal-close',onClick:()=>setShowForm(false)},'✕')),
+      h('div',{className:'modal-body'},
+        h('div',{className:'grid-2'},h(FG,{label:'Serial Number *'},h('input',{type:'text',value:form.serialNumber||'',onChange:e=>set('serialNumber',e.target.value)})),h(FG,{label:'Model *'},h(S,{lk:'models',val:form.model,setter:v=>set('model',v)}))),
+        h('div',{className:'grid-2'},h(FG,{label:'Biosans S/W'},h('input',{type:'text',value:form.biosansVersion||'',onChange:e=>set('biosansVersion',e.target.value)})),h(FG,{label:'PC Name'},h('input',{type:'text',value:form.pcName||'',onChange:e=>set('pcName',e.target.value)}))),
+        h('div',{className:'grid-2'},
+          h(FG,{label:'Customer'},h('select',{value:form.customerId||'',onChange:e=>set('customerId',e.target.value)},h('option',{value:''},'— Select —'),customers.map(c=>h('option',{key:c.id,value:c.id},c.name)))),
+          h(FG,{label:'Status'},h(S,{lk:'machineStatuses',val:form.status,setter:v=>set('status',v)}))
+        ),
+        h('div',{className:'grid-2'},h(FG,{label:'Location Name'},h('input',{type:'text',value:form.location||'',onChange:e=>set('location',e.target.value)})),h(FG,{label:'Site Name'},h('input',{type:'text',value:form.site||'',onChange:e=>set('site',e.target.value)}))),
+        h('div',{className:'grid-3'},h(FG,{label:'Address'},h('input',{type:'text',value:form.address||'',onChange:e=>set('address',e.target.value)})),h(FG,{label:'City'},h('input',{type:'text',value:form.city||'',onChange:e=>set('city',e.target.value)})),h(FG,{label:'Country'},h(S,{lk:'countries',val:form.country,setter:v=>set('country',v)}))),
+        h('div',{className:'grid-2'},h(FG,{label:'Warranty Days'},h('input',{type:'number',value:form.warrantyDays||'',onChange:e=>set('warrantyDays',e.target.value)})),h(FG,{label:'Notes'},h('input',{type:'text',value:form.notes||'',onChange:e=>set('notes',e.target.value)})))
+      ),
+      h('div',{className:'modal-footer'},h('button',{className:'btn btn-secondary',onClick:()=>setShowForm(false)},'Cancel'),h('button',{className:'btn btn-primary',onClick:save},editM?'Save Changes':'Add Machine'))
+    ))
+  );
+}
+
+// -- CUSTOMERS PAGE ------------------------------------------------------------
+function CustomersPage({db, user, onDbChange}) {
+  const [search,setSearch]=useState('');
+  const [showForm,setShowForm]=useState(false);
+  const [editC,setEditC]=useState(null);
+  const [form,setForm]=useState({});
+  const [importMsg,setImportMsg]=useState('');
+  const fileRef=useRef(null);
+  const customers=db.customers||[], machines=db.machines||[], tickets=db.tickets||[];
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const openForm=c=>{setEditC(c||null);setForm(c?{...c}:{name:'',contact:'',email:'',phone:'',country:'',city:'',address:'',website:'',paymentTerms:'',notes:''});setShowForm(true);};
+  const save=()=>{
+    if(!form.name){alert('Company name required');return;}
+    const all=customers;
+    onDbChange(editC?{...db,customers:all.map(c=>c.id===editC.id?{...form,id:editC.id}:c)}:{...db,customers:[...all,{...form,id:nextId(all)}]},true);
+    setShowForm(false);
+  };
+  const del=id=>{if(!confirm('Delete customer?'))return;onDbChange({...db,customers:customers.filter(c=>c.id!==id)},true);};
+  const filtered=customers.filter(c=>{const s=search.toLowerCase();return !s||(c.name||'').toLowerCase().includes(s)||(c.contact||'').toLowerCase().includes(s)||(c.email||'').toLowerCase().includes(s);});
+  const S=({lk,val,setter})=>h(SmartSelect,{listKey:lk,value:val,onChange:setter,db,onDbChange});
+
+  // Download CSV template
+  const downloadTemplate=()=>{
+    const headers=['name','contact','email','phone','address','city','country','website','paymentTerms','notes'];
+    const example=['Turkish Airlines CIP','Tarek Abou Jaoude','tarek@ta.com','+90 212 555 0100','Istanbul Airport','Istanbul','Turkey','www.turkishairlines.com','Net 30 Days','VIP Customer'];
+    const csv=headers.join(',')+String.fromCharCode(10)+example.join(',');
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='customers_import_template.csv';
+    a.click();
+  };
+
+  // Parse and import CSV
+  const handleImport=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const lines=ev.target.result.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+        const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+        let added=0,updated=0;
+        let current=[...customers];
+        for(let i=1;i<lines.length;i++){
+          const vals=lines[i].split(',').map(v=>v.trim().replace(/"/g,'').replace(/\r/g,''));
+          if(vals.length<1)continue;
+          const row={};
+          headers.forEach((h,idx)=>row[h]=vals[idx]||'');
+          if(!row.name)continue;
+          const existing=current.find(c=>c.name.toLowerCase()===row.name.toLowerCase());
+          if(existing){
+            current=current.map(c=>c.name.toLowerCase()===row.name.toLowerCase()?{...c,...row,id:c.id}:c);
+            updated++;
+          } else {
+            current.push({...row,id:nextId(current)});
+            added++;
+          }
+        }
+        onDbChange({...db,customers:current},true);
+        setImportMsg('✅ Import complete: '+added+' added, '+updated+' updated.');
+        setTimeout(()=>setImportMsg(''),5000);
+      }catch(err){setImportMsg('❌ Error parsing CSV: '+err.message);}
+    };
+    reader.readAsText(file);
+    e.target.value='';
+  };
+
+  return h('div',null,
+    h('div',{className:'sh'},
+      h('div',{className:'sh-title'},'Customers / CRM ('+filtered.length+')'),
+      h('div',{style:{display:'flex',gap:8}},
+        h('button',{className:'btn btn-secondary',onClick:downloadTemplate},'⬇ Template'),
+        h('button',{className:'btn btn-secondary',onClick:()=>fileRef.current.click()},'⬆ Import CSV'),
+        h('input',{type:'file',accept:'.csv',ref:fileRef,style:{display:'none'},onChange:handleImport}),
+        h('button',{className:'btn btn-primary',onClick:()=>openForm(null)},h(Icon,{name:'plus',size:14}),' Add Customer')
+      )
+    ),
+    importMsg&&h('div',{className:'info-banner '+(importMsg.startsWith('✅')?'info-green':'info-red'),style:{marginBottom:12}},importMsg),
+    h('div',{className:'filter-bar'},h('input',{type:'text',placeholder:'Search customers...',value:search,onChange:e=>setSearch(e.target.value),style:{minWidth:240}})),
+    h('div',{className:'card'},
+      filtered.length===0?h('div',{className:'es'},h('div',{className:'es-icon'},'🏢'),h('p',null,'No customers yet. Add one or import a CSV.')):
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Company'),h('th',null,'Contact'),h('th',null,'Email'),h('th',null,'Phone'),h('th',null,'Country'),h('th',null,'Machines'),h('th',null,'Tickets'),h('th',null,'Actions'))),
+        h('tbody',null,filtered.map(c=>{
+          const mc=machines.filter(m=>m.customerId===c.id).length;
+          const tc=tickets.filter(t=>{const m=machines.find(x=>x.id===parseInt(t.machineId));return m&&m.customerId===c.id;}).length;
+          return h('tr',{key:c.id},
+            h('td',null,h('strong',null,c.name)),h('td',null,c.contact||'—'),h('td',null,c.email||'—'),h('td',null,c.phone||'—'),h('td',null,c.country||'—'),
+            h('td',null,h('span',{className:'badge b-open'},mc)),h('td',null,h('span',{className:'badge b-progress'},tc)),
+            h('td',null,h('div',{className:'tbl-actions'},
+              h('button',{className:'btn btn-secondary btn-xs',onClick:()=>openForm(c)},h(Icon,{name:'edit',size:12})),
+              user.role==='Admin'&&h('button',{className:'btn btn-danger btn-xs',onClick:()=>del(c.id)},h(Icon,{name:'trash',size:12}))
+            ))
+          );
+        }))
+      )
+    ),
+    showForm&&h('div',{className:'modal-bg'},h('div',{className:'modal'},
+      h('div',{className:'modal-header'},h('h3',null,editC?'Edit Customer: '+editC.name:'Add Customer'),h('button',{className:'modal-close',onClick:()=>setShowForm(false)},'✕')),
+      h('div',{className:'modal-body'},
+        h('div',{className:'grid-2'},h(FG,{label:'Company Name *'},h('input',{type:'text',value:form.name||'',onChange:e=>set('name',e.target.value)})),h(FG,{label:'Contact Person'},h('input',{type:'text',value:form.contact||'',onChange:e=>set('contact',e.target.value)}))),
+        h('div',{className:'grid-2'},h(FG,{label:'Email'},h('input',{type:'email',value:form.email||'',onChange:e=>set('email',e.target.value)})),h(FG,{label:'Phone'},h('input',{type:'tel',value:form.phone||'',onChange:e=>set('phone',e.target.value)}))),
+        h('div',{className:'grid-2'},h(FG,{label:'Website'},h('input',{type:'text',value:form.website||'',onChange:e=>set('website',e.target.value)})),h(FG,{label:'Payment Terms'},h(S,{lk:'paymentTerms',val:form.paymentTerms,setter:v=>set('paymentTerms',v)}))),
+        h('div',{className:'grid-3'},h(FG,{label:'Address'},h('input',{type:'text',value:form.address||'',onChange:e=>set('address',e.target.value)})),h(FG,{label:'City'},h('input',{type:'text',value:form.city||'',onChange:e=>set('city',e.target.value)})),h(FG,{label:'Country'},h(S,{lk:'countries',val:form.country,setter:v=>set('country',v)}))),
+        h(FG,{label:'Notes'},h('textarea',{value:form.notes||'',onChange:e=>set('notes',e.target.value),rows:3}))
+      ),
+      h('div',{className:'modal-footer'},h('button',{className:'btn btn-secondary',onClick:()=>setShowForm(false)},'Cancel'),h('button',{className:'btn btn-primary',onClick:save},editC?'Save Changes':'Add Customer'))
+    ))
+  );
+}
+
+// -- SPARE PARTS PAGE ---------------------------------------------------------
+function PartsPage({db, user, onDbChange}) {
+  const [search,setSearch]=useState('');
+  const [catFilter,setCatFilter]=useState('');
+  const [showForm,setShowForm]=useState(false);
+  const [editP,setEditP]=useState(null);
+  const [form,setForm]=useState({});
+  const [importMsg,setImportMsg]=useState('');
+  const fileRef=useRef(null);
+  const parts=db.parts||[];
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const S=({lk,val,setter,ph})=>h(SmartSelect,{listKey:lk,value:val,onChange:setter,db,onDbChange,placeholder:ph||'-- Select --'});
+  const blank={partNumber:'',description:'',category:'',manufacturer:'',model:'',condition:'New',stockQty:'0',minStock:'2',purchaseCost:'',sellingPrice:'',currency:'USD',warehouse:'Main Warehouse',compatibleModels:'',notes:'',active:true};
+
+  const openForm=p=>{setEditP(p||null);setForm(p?{...p}:{...blank});setShowForm(true);};
+  const save=()=>{
+    if(!form.partNumber||!form.description){alert('Part Number and Description required');return;}
+    if((db.parts||[]).find(p=>p.partNumber===form.partNumber&&(!editP||p.id!==editP.id))){alert('Part Number already exists');return;}
+    const all=parts;
+    onDbChange(editP?{...db,parts:all.map(p=>p.id===editP.id?{...form,id:editP.id}:p)}:{...db,parts:[...all,{...form,id:nextId(all)}]},true);
+    setShowForm(false);
+  };
+  const del=id=>{if(!confirm('Delete part?'))return;onDbChange({...db,parts:parts.filter(p=>p.id!==id)},true);};
+  const margin=p=>{const c=parseFloat(p.purchaseCost||0),s=parseFloat(p.sellingPrice||0);if(!c||!s)return null;return Math.round(((s-c)/s)*100);};
+  const isLowStock=p=>parseInt(p.stockQty||0)<=parseInt(p.minStock||0);
+
+  // Download CSV template
+  const downloadTemplate=()=>{
+    const headers=['partNumber','description','category','manufacturer','model','condition','stockQty','minStock','purchaseCost','sellingPrice','currency','warehouse','compatibleModels','notes'];
+    const examples=[
+      ['VP-XR3D-001','X-Ray Generator Module','X-Ray Generator','VITA','XR3D-60','New','5','2','1200.00','1800.00','USD','Main Warehouse','XR3D-60;XR3D-6D','High demand part'],
+      ['VP-CONV-002','Conveyor Belt Assembly','Conveyor System','VITA','All Models','New','3','1','350.00','520.00','USD','Main Warehouse','All',''],
+      ['VP-PSU-003','Power Supply Unit 24V','Power Supply','Delta','XR3D Series','Refurbished','2','1','280.00','420.00','USD','Canada Office','XR3D-4;XR3D-6D',''],
+    ];
+    const csv=[headers,...examples].map(r=>r.join(',')).join(String.fromCharCode(10));
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='spare_parts_import_template.csv';
+    a.click();
+  };
+
+  // Import CSV
+  const handleImport=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const lines=ev.target.result.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+        const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+        let added=0,updated=0,skipped=0;
+        let current=[...parts];
+        for(let i=1;i<lines.length;i++){
+          const vals=lines[i].split(',').map(v=>v.trim().replace(/"/g,'').replace(/\r/g,''));
+          const row={};
+          headers.forEach((h,idx)=>row[h]=vals[idx]||'');
+          if(!row.partNumber||!row.description){skipped++;continue;}
+          const existing=current.find(p=>p.partNumber===row.partNumber);
+          if(existing){
+            current=current.map(p=>p.partNumber===row.partNumber?{...p,...row,id:p.id,active:true}:p);
+            updated++;
+          } else {
+            current.push({...row,id:nextId(current),active:true});
+            added++;
+          }
+        }
+        onDbChange({...db,parts:current},true);
+        setImportMsg('Import complete: '+added+' added, '+updated+' updated, '+skipped+' skipped.');
+        setTimeout(()=>setImportMsg(''),6000);
+      }catch(err){setImportMsg('Error: '+err.message);}
+    };
+    reader.readAsText(file);
+    e.target.value='';
+  };
+
+  const filtered=parts.filter(p=>{
+    const s=search.toLowerCase();
+    const matchS=!s||(p.partNumber||'').toLowerCase().includes(s)||(p.description||'').toLowerCase().includes(s)||(p.manufacturer||'').toLowerCase().includes(s);
+    const matchC=!catFilter||p.category===catFilter;
+    return matchS&&matchC;
+  });
+
+  const lists=db.lists||{};
+  const categories=[...new Set(parts.map(p=>p.category).filter(Boolean))];
+  const lowStockCount=parts.filter(isLowStock).length;
+  const totalValue=parts.reduce((s,p)=>s+(parseFloat(p.purchaseCost||0)*parseInt(p.stockQty||0)),0);
+  const totalSellValue=parts.reduce((s,p)=>s+(parseFloat(p.sellingPrice||0)*parseInt(p.stockQty||0)),0);
+
+  return h('div',null,
+    h('div',{className:'sh'},
+      h('div',null,
+        h('div',{className:'sh-title'},'Spare Parts ('+parts.length+')'),
+        lowStockCount>0&&h('div',{style:{fontSize:12,color:'var(--red)',marginTop:3}},lowStockCount+' parts at or below minimum stock')
+      ),
+      h('div',{style:{display:'flex',gap:8,flexWrap:'wrap'}},
+        h('button',{className:'btn btn-secondary',onClick:downloadTemplate},'⬇ Template'),
+        h('button',{className:'btn btn-secondary',onClick:()=>fileRef.current&&fileRef.current.click()},'⬆ Import CSV'),
+        h('input',{type:'file',accept:'.csv',ref:fileRef,style:{display:'none'},onChange:handleImport}),
+        h('button',{className:'btn btn-primary',onClick:()=>openForm(null)},h(Icon,{name:'plus',size:14}),' Add Part')
+      )
+    ),
+    importMsg&&h('div',{className:'info-banner info-green',style:{marginBottom:12}},importMsg),
+    h('div',{className:'grid-3',style:{marginBottom:16}},
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#dbeafe'}},'📦'),h('div',{className:'stat-lbl'},'Total Parts'),h('div',{className:'stat-val'},parts.length),h('div',{className:'stat-sub'},filtered.length+' shown')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#fee2e2'}},'⚠️'),h('div',{className:'stat-lbl'},'Low Stock'),h('div',{className:'stat-val',style:{color:'var(--red)'}},lowStockCount),h('div',{className:'stat-sub'},'At or below min')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#d1fae5'}},'💰'),h('div',{className:'stat-lbl'},'Stock Value'),h('div',{className:'stat-val'},'$'+Math.round(totalValue).toLocaleString()),h('div',{className:'stat-sub'},'Sell: $'+Math.round(totalSellValue).toLocaleString()))
+    ),
+    h('div',{className:'filter-bar'},
+      h('input',{type:'text',placeholder:'Search part #, description, manufacturer...',value:search,onChange:e=>setSearch(e.target.value),style:{minWidth:280}}),
+      h('select',{value:catFilter,onChange:e=>setCatFilter(e.target.value),style:{minWidth:160}},
+        h('option',{value:''},'All Categories'),
+        (lists.partCategories||categories).map(c=>h('option',{key:c,value:c},c))
+      ),
+      h('button',{className:'btn btn-secondary',onClick:()=>{setSearch('');setCatFilter('');}}, 'Clear')
+    ),
+    h('div',{className:'card'},
+      filtered.length===0
+        ?h('div',{className:'es'},h('div',{className:'es-icon'},'📦'),h('p',null,'No parts found. Download the template and import your parts catalogue.'))
+        :h('table',null,
+            h('thead',null,h('tr',null,
+              h('th',null,'Part #'),h('th',null,'Description'),h('th',null,'Category'),
+              h('th',null,'Manufacturer'),h('th',null,'Condition'),h('th',null,'Stock'),
+              h('th',null,'Purchase Cost'),h('th',null,'Selling Price'),h('th',null,'Margin'),h('th',null,'Actions')
+            )),
+            h('tbody',null,filtered.map(p=>{
+              const low=isLowStock(p);
+              const mg=margin(p);
+              return h('tr',{key:p.id,style:{background:low?'#fff5f5':''}},
+                h('td',null,h('strong',{style:{color:'var(--navy)'}},p.partNumber)),
+                h('td',null,h('div',null,h('div',{style:{fontSize:13,fontWeight:500}},p.description),p.compatibleModels&&h('div',{style:{fontSize:11,color:'var(--gray)'}},'Fits: '+p.compatibleModels))),
+                h('td',null,h('span',{className:'badge b-open',style:{fontSize:10}},p.category||'--')),
+                h('td',null,p.manufacturer||'--'),
+                h('td',null,h('span',{className:'badge '+(p.condition==='New'?'b-resolved':'b-noncrit')},p.condition||'New')),
+                h('td',null,h('span',{style:{fontWeight:700,color:low?'var(--red)':'var(--navy)'}},parseInt(p.stockQty||0)),
+                  h('span',{style:{fontSize:11,color:'var(--gray)',marginLeft:4}},'/ min '+p.minStock)
+                ),
+                h('td',null,p.purchaseCost?'$'+parseFloat(p.purchaseCost).toFixed(2):'--'),
+                h('td',null,p.sellingPrice?h('strong',{style:{color:'var(--green)'}},'$'+parseFloat(p.sellingPrice).toFixed(2)):'--'),
+                h('td',null,mg!==null?h('span',{className:'badge '+(mg>=30?'b-resolved':mg>=15?'b-noncrit':'b-pending')},mg+'%'):'--'),
+                h('td',null,h('div',{className:'tbl-actions'},
+                  h('button',{className:'btn btn-secondary btn-xs',onClick:()=>openForm(p)},h(Icon,{name:'edit',size:12})),
+                  user.role==='Admin'&&h('button',{className:'btn btn-danger btn-xs',onClick:()=>del(p.id)},h(Icon,{name:'trash',size:12}))
+                ))
+              );
+            }))
+          )
+    ),
+
+    showForm&&h('div',{className:'modal-bg'},
+      h('div',{className:'modal modal-lg'},
+        h('div',{className:'modal-header'},
+          h('h3',null,editP?'Edit Part: '+editP.partNumber:'Add Spare Part'),
+          h('button',{className:'modal-close',onClick:()=>setShowForm(false)},'✕')
+        ),
+        h('div',{className:'modal-body'},
+          h('div',{style:{fontSize:11,fontWeight:700,color:'var(--gray)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10}},'Part Information'),
+          h('div',{className:'form-row form-row-3'},
+            h(FG,{label:'Part Number *'},h('input',{type:'text',value:form.partNumber||'',onChange:e=>set('partNumber',e.target.value),placeholder:'e.g. VP-XR3D-001'})),
+            h(FG,{label:'Category'},h(S,{lk:'partCategories',val:form.category,setter:v=>set('category',v)})),
+            h(FG,{label:'Condition'},h(S,{lk:'partConditions',val:form.condition,setter:v=>set('condition',v)}))
+          ),
+          h('div',{className:'form-row form-row-2'},
+            h(FG,{label:'Description *'},h('input',{type:'text',value:form.description||'',onChange:e=>set('description',e.target.value)})),
+            h(FG,{label:'Compatible Models'},h('input',{type:'text',value:form.compatibleModels||'',onChange:e=>set('compatibleModels',e.target.value),placeholder:'e.g. XR3D-60; XR3D-6D'}))
+          ),
+          h('div',{className:'form-row form-row-3'},
+            h(FG,{label:'Manufacturer'},h('input',{type:'text',value:form.manufacturer||'',onChange:e=>set('manufacturer',e.target.value)})),
+            h(FG,{label:'Manufacturer Model'},h('input',{type:'text',value:form.model||'',onChange:e=>set('model',e.target.value)})),
+            h(FG,{label:'Warehouse'},h(S,{lk:'warehouses',val:form.warehouse,setter:v=>set('warehouse',v)}))
+          ),
+          h('div',{style:{borderTop:'1px solid var(--gray-border)',paddingTop:12,marginTop:4,marginBottom:4}},
+            h('div',{style:{fontSize:11,fontWeight:700,color:'var(--gray)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10}},'Stock & Pricing')
+          ),
+          h('div',{className:'form-row form-row-3'},
+            h(FG,{label:'Stock Qty'},h('input',{type:'number',value:form.stockQty||'0',onChange:e=>set('stockQty',e.target.value)})),
+            h(FG,{label:'Min Stock (Alert)'},h('input',{type:'number',value:form.minStock||'2',onChange:e=>set('minStock',e.target.value)})),
+            h(FG,{label:'Currency'},h(S,{lk:'currencies',val:form.currency,setter:v=>set('currency',v)}))
+          ),
+          h('div',{className:'form-row form-row-2'},
+            h(FG,{label:'Purchase / Cost Price'},h('input',{type:'number',step:'0.01',value:form.purchaseCost||'',onChange:e=>set('purchaseCost',e.target.value),placeholder:'0.00'})),
+            h(FG,{label:'Selling Price'},h('input',{type:'number',step:'0.01',value:form.sellingPrice||'',onChange:e=>set('sellingPrice',e.target.value),placeholder:'0.00'}))
+          ),
+          h(FG,{label:'Notes'},h('textarea',{value:form.notes||'',onChange:e=>set('notes',e.target.value),rows:2}))
+        ),
+        h('div',{className:'modal-footer'},
+          h('button',{className:'btn btn-secondary',onClick:()=>setShowForm(false)},'Cancel'),
+          h('button',{className:'btn btn-primary',onClick:save},editP?'Save Changes':'Add Part')
+        )
+      )
+    )
+  );
+}
+
+// -- RMA PAGE -----------------------------------------------------------------
+function RMAPage({db, user, onDbChange}) {
+  const [search,setSearch]=useState('');
+  const [statusFilter,setStatusFilter]=useState('');
+  const [showForm,setShowForm]=useState(false);
+  const [editR,setEditR]=useState(null);
+  const [viewR,setViewR]=useState(null);
+  const [form,setForm]=useState({});
+  const rmaList=db.rma||[];
+  const parts=db.parts||[];
+  const machines=db.machines||[];
+  const customers=db.customers||[];
+  const tickets=db.tickets||[];
+  const users=db.users||[];
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const S=({lk,val,setter})=>h(SmartSelect,{listKey:lk,value:val,onChange:setter,db,onDbChange});
+
+  const blank={
+    rmaNumber:'',ticketId:'',machineId:'',customerId:'',partId:'',
+    partNumber:'',partDescription:'',serialNumberPart:'',
+    reason:'',status:'Pending Approval',direction:'Send to Customer',
+    isWarranty:'Yes',purchaseCost:'',sellingPrice:'',currency:'USD',
+    qty:'1',shippingCost:'',trackingNumber:'',courierName:'',
+    notes:'',createdBy:user.id,createdAt:new Date().toISOString().slice(0,10),
+    resolvedAt:''
+  };
+
+  const openForm=r=>{
+    setEditR(r||null);
+    if(r){setForm({...r});}
+    else{
+      const newNum='RMA-'+(1000+nextId(rmaList));
+      setForm({...blank,rmaNumber:newNum});
+    }
+    setShowForm(true);
+  };
+
+  const save=()=>{
+    if(!form.partNumber||!form.reason||!form.status){alert('Part Number, Reason and Status required');return;}
+    // Update part stock based on direction
+    let updatedParts=[...parts];
+    if(!editR){
+      // New RMA - adjust stock
+      const partIdx=updatedParts.findIndex(p=>p.partNumber===form.partNumber);
+      if(partIdx>=0){
+        const qty=parseInt(form.qty||1);
+        if(form.direction==='Send to Customer'){
+          // Decrease stock
+          updatedParts[partIdx]={...updatedParts[partIdx],stockQty:Math.max(0,(parseInt(updatedParts[partIdx].stockQty||0)-qty))};
+        } else if(form.direction==='Receive from Customer'){
+          // Increase stock
+          updatedParts[partIdx]={...updatedParts[partIdx],stockQty:(parseInt(updatedParts[partIdx].stockQty||0)+qty)};
+        }
+      }
+    }
+    const all=rmaList;
+    const updated=editR
+      ?{...db,rma:all.map(r=>r.id===editR.id?{...form,id:editR.id}:r),parts:updatedParts}
+      :{...db,rma:[...all,{...form,id:nextId(all)}],parts:updatedParts};
+    onDbChange(updated,true);setShowForm(false);
+  };
+
+  const del=id=>{if(!confirm('Delete RMA?'))return;onDbChange({...db,rma:rmaList.filter(r=>r.id!==id)},true);};
+
+  const filtered=rmaList.filter(r=>{
+    const s=search.toLowerCase();
+    const ms=!s||(r.rmaNumber||'').toLowerCase().includes(s)||(r.partNumber||'').toLowerCase().includes(s)||(r.partDescription||'').toLowerCase().includes(s);
+    const mst=!statusFilter||r.status===statusFilter;
+    return ms&&mst;
+  });
+
+  const lists=db.lists||{};
+  const totalRmaCost=rmaList.filter(r=>r.isWarranty==='Yes').reduce((s,r)=>s+(parseFloat(r.purchaseCost||0)*parseInt(r.qty||1)),0);
+  const totalRmaRevenue=rmaList.filter(r=>r.isWarranty==='No').reduce((s,r)=>s+(parseFloat(r.sellingPrice||0)*parseInt(r.qty||1)),0);
+  const openRmas=rmaList.filter(r=>!['Replaced & Closed','Rejected'].includes(r.status)).length;
+
+  const statusColor=s=>{
+    if(s==='Pending Approval')return 'b-progress';
+    if(s==='Rejected')return 'b-pending';
+    if(s==='Replaced & Closed')return 'b-resolved';
+    return 'b-open';
+  };
+
+  // When a part is selected, auto-fill cost/price from parts catalogue
+  const selectPart=partNum=>{
+    const p=parts.find(x=>x.partNumber===partNum);
+    if(p){
+      setForm(f=>({...f,partNumber:partNum,partDescription:p.description,
+        purchaseCost:p.purchaseCost||'',sellingPrice:p.sellingPrice||'',currency:p.currency||'USD'}));
+    } else {
+      set('partNumber',partNum);
+    }
+  };
+
+  // When a ticket is selected, auto-fill machine/customer
+  const selectTicket=ticketId=>{
+    const t=tickets.find(x=>x.id===parseInt(ticketId));
+    if(t){
+      const m=machines.find(x=>x.id===parseInt(t.machineId));
+      setForm(f=>({...f,ticketId,machineId:t.machineId||'',customerId:m?m.customerId:'',
+        customerName:t.customerName||''}));
+    } else {
+      set('ticketId',ticketId);
+    }
+  };
+
+  return h('div',null,
+    h('div',{className:'sh'},
+      h('div',null,
+        h('div',{className:'sh-title'},'RMA - Return Merchandise Authorization ('+rmaList.length+')'),
+        h('div',{style:{fontSize:12,color:'var(--gray)',marginTop:3}},openRmas+' open RMAs')
+      ),
+      h('button',{className:'btn btn-primary',onClick:()=>openForm(null)},h(Icon,{name:'plus',size:14}),' New RMA')
+    ),
+
+    h('div',{className:'grid-3',style:{marginBottom:16}},
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#fee2e2'}},'🔄'),h('div',{className:'stat-lbl'},'Open RMAs'),h('div',{className:'stat-val'},openRmas),h('div',{className:'stat-sub'},'Pending action')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#fef3c7'}},'⚠️'),h('div',{className:'stat-lbl'},'Warranty Cost'),h('div',{className:'stat-val',style:{color:'var(--red)'}},'$'+Math.round(totalRmaCost).toLocaleString()),h('div',{className:'stat-sub'},'Cost of honored warranty')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-icon',style:{background:'#d1fae5'}},'💰'),h('div',{className:'stat-lbl'},'Paid RMA Revenue'),h('div',{className:'stat-val',style:{color:'var(--green)'}},'$'+Math.round(totalRmaRevenue).toLocaleString()),h('div',{className:'stat-sub'},'Out-of-warranty sales'))
+    ),
+
+    h('div',{className:'filter-bar'},
+      h('input',{type:'text',placeholder:'Search RMA #, part, description...',value:search,onChange:e=>setSearch(e.target.value),style:{minWidth:260}}),
+      h('select',{value:statusFilter,onChange:e=>setStatusFilter(e.target.value),style:{minWidth:180}},
+        h('option',{value:''},'All Statuses'),
+        (lists.rmaStatuses||[]).map(s=>h('option',{key:s,value:s},s))
+      ),
+      h('button',{className:'btn btn-secondary',onClick:()=>{setSearch('');setStatusFilter('');}}, 'Clear')
+    ),
+
+    h('div',{className:'card'},
+      filtered.length===0
+        ?h('div',{className:'es'},h('div',{className:'es-icon'},'🔄'),h('p',null,'No RMAs yet'))
+        :h('table',null,
+            h('thead',null,h('tr',null,
+              h('th',null,'RMA #'),h('th',null,'Date'),h('th',null,'Part #'),h('th',null,'Description'),
+              h('th',null,'Reason'),h('th',null,'Warranty'),h('th',null,'Qty'),
+              h('th',null,'Cost'),h('th',null,'Sell'),h('th',null,'Status'),h('th',null,'Actions')
+            )),
+            h('tbody',null,filtered.map(r=>{
+              const cost=parseFloat(r.purchaseCost||0)*parseInt(r.qty||1);
+              const sell=parseFloat(r.sellingPrice||0)*parseInt(r.qty||1);
+              const t=tickets.find(x=>x.id===parseInt(r.ticketId));
+              return h('tr',{key:r.id},
+                h('td',null,h('div',null,h('strong',{style:{color:'var(--navy)',cursor:'pointer'},onClick:()=>setViewR(r)},r.rmaNumber),t&&h('div',{style:{fontSize:11,color:'var(--gray)'}},t.ticketNumber))),
+                h('td',null,r.createdAt||'--'),
+                h('td',null,h('strong',null,r.partNumber)),
+                h('td',null,h('span',{style:{fontSize:12}},(r.partDescription||'').slice(0,30)+(r.partDescription&&r.partDescription.length>30?'...':''))),
+                h('td',null,h('span',{style:{fontSize:11,color:'var(--gray)'}},r.reason)),
+                h('td',null,h('span',{className:'badge '+(r.isWarranty==='Yes'?'b-open':'b-pending')},r.isWarranty==='Yes'?'Warranty':'Chargeable')),
+                h('td',null,r.qty||1),
+                h('td',null,cost>0?h('span',{style:{color:'var(--red)',fontWeight:600}},'$'+cost.toFixed(2)):'--'),
+                h('td',null,sell>0?h('span',{style:{color:'var(--green)',fontWeight:600}},'$'+sell.toFixed(2)):'--'),
+                h('td',null,h('span',{className:'badge '+statusColor(r.status)},r.status)),
+                h('td',null,h('div',{className:'tbl-actions'},
+                  h('button',{className:'btn btn-secondary btn-xs',onClick:()=>setViewR(r)},h(Icon,{name:'eye',size:12})),
+                  h('button',{className:'btn btn-secondary btn-xs',onClick:()=>openForm(r)},h(Icon,{name:'edit',size:12})),
+                  user.role==='Admin'&&h('button',{className:'btn btn-danger btn-xs',onClick:()=>del(r.id)},h(Icon,{name:'trash',size:12}))
+                ))
+              );
+            }))
+          )
+    ),
+
+    // VIEW MODAL
+    viewR&&h('div',{className:'modal-bg'},
+      h('div',{className:'modal'},
+        h('div',{className:'modal-header'},
+          h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+            h('h3',null,viewR.rmaNumber),
+            h('span',{className:'badge '+statusColor(viewR.status)},viewR.status)
+          ),
+          h('div',{style:{display:'flex',gap:8}},
+            h('button',{className:'btn btn-secondary btn-sm',onClick:()=>{setViewR(null);openForm(viewR);}},h(Icon,{name:'edit',size:13}),' Edit'),
+            h('button',{className:'modal-close',onClick:()=>setViewR(null)},'✕')
+          )
+        ),
+        h('div',{className:'modal-body'},
+          h('div',{className:'tdg'},
+            ...[
+              ['RMA Number',viewR.rmaNumber],['Date',viewR.createdAt],
+              ['Part Number',h('strong',null,viewR.partNumber)],['Description',viewR.partDescription||'--'],
+              ['Part Serial #',viewR.serialNumberPart||'--'],['Qty',viewR.qty||1],
+              ['Reason',viewR.reason||'--'],['Direction',viewR.direction||'--'],
+              ['Warranty',viewR.isWarranty==='Yes'?'Yes - Under Warranty':'No - Chargeable'],['Status',h('span',{className:'badge '+statusColor(viewR.status)},viewR.status)],
+              ['Purchase Cost','$'+parseFloat(viewR.purchaseCost||0).toFixed(2)],['Selling Price','$'+parseFloat(viewR.sellingPrice||0).toFixed(2)],
+              ['Courier',viewR.courierName||'--'],['Tracking #',viewR.trackingNumber||'--'],
+            ].map(([lbl,val])=>h('div',{key:lbl,className:'tdf'},h('label',null,lbl),h('p',null,val)))
+          ),
+          viewR.notes&&h('div',{className:'card',style:{marginTop:12,background:'#f8fafc'}},
+            h('div',{className:'card-title',style:{marginBottom:6}},'Notes'),
+            h('p',{style:{fontSize:13}},viewR.notes)
+          )
+        )
+      )
+    ),
+
+    // ADD/EDIT MODAL
+    showForm&&h('div',{className:'modal-bg'},
+      h('div',{className:'modal modal-lg'},
+        h('div',{className:'modal-header'},
+          h('h3',null,editR?'Edit '+editR.rmaNumber:'New RMA'),
+          h('button',{className:'modal-close',onClick:()=>setShowForm(false)},'✕')
+        ),
+        h('div',{className:'modal-body'},
+          h('div',{style:{fontSize:11,fontWeight:700,color:'var(--gray)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10}},'RMA Details'),
+          h('div',{className:'form-row form-row-3'},
+            h(FG,{label:'RMA Number'},h('input',{type:'text',value:form.rmaNumber||'',onChange:e=>set('rmaNumber',e.target.value),readOnly:!!editR})),
+            h(FG,{label:'Linked Ticket'},
+              h('select',{value:form.ticketId||'',onChange:e=>selectTicket(e.target.value)},
+                h('option',{value:''},'-- Select Ticket --'),
+                tickets.map(t=>h('option',{key:t.id,value:t.id},t.ticketNumber+' - '+(t.customerName||'').slice(0,20)))
+              )
+            ),
+            h(FG,{label:'Direction'},
+              h('select',{value:form.direction||'Send to Customer',onChange:e=>set('direction',e.target.value)},
+                h('option',{value:'Send to Customer'},'Send to Customer'),
+                h('option',{value:'Receive from Customer'},'Receive from Customer')
+              )
+            )
+          ),
+          h('div',{className:'form-row form-row-3'},
+            h(FG,{label:'Part Number *'},
+              h('select',{value:form.partNumber||'',onChange:e=>selectPart(e.target.value)},
+                h('option',{value:''},'-- Select from Catalogue --'),
+                parts.map(p=>h('option',{key:p.id,value:p.partNumber},p.partNumber+' - '+p.description))
+              )
+            ),
+            h(FG,{label:'Part Description'},h('input',{type:'text',value:form.partDescription||'',onChange:e=>set('partDescription',e.target.value)})),
+            h(FG,{label:'Part Serial #'},h('input',{type:'text',value:form.serialNumberPart||'',onChange:e=>set('serialNumberPart',e.target.value)}))
+          ),
+          h('div',{className:'form-row form-row-3'},
+            h(FG,{label:'Reason *'},h(S,{lk:'rmaReasons',val:form.reason,setter:v=>set('reason',v)})),
+            h(FG,{label:'Status *'},h(S,{lk:'rmaStatuses',val:form.status,setter:v=>set('status',v)})),
+            h(FG,{label:'Qty'},h('input',{type:'number',value:form.qty||'1',onChange:e=>set('qty',e.target.value),min:'1'}))
+          ),
+          h('div',{className:'form-row form-row-2'},
+            h(FG,{label:'Under Warranty?'},
+              h('select',{value:form.isWarranty||'Yes',onChange:e=>set('isWarranty',e.target.value)},
+                h('option',{value:'Yes'},'Yes - VITA bears the cost'),
+                h('option',{value:'No'},'No - Customer pays')
+              )
+            ),
+            h(FG,{label:'Currency'},h(S,{lk:'currencies',val:form.currency,setter:v=>set('currency',v)}))
+          ),
+          h('div',{style:{borderTop:'1px solid var(--gray-border)',paddingTop:12,marginTop:4,marginBottom:4}},
+            h('div',{style:{fontSize:11,fontWeight:700,color:'var(--gray)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10}},'Costs & Shipping')
+          ),
+          h('div',{className:'form-row form-row-2'},
+            h(FG,{label:'Purchase / Cost Price (per unit)'},h('input',{type:'number',step:'0.01',value:form.purchaseCost||'',onChange:e=>set('purchaseCost',e.target.value),placeholder:'0.00'})),
+            h(FG,{label:'Selling Price (per unit)'},h('input',{type:'number',step:'0.01',value:form.sellingPrice||'',onChange:e=>set('sellingPrice',e.target.value),placeholder:'0.00'}))
+          ),
+          h('div',{className:'form-row form-row-3'},
+            h(FG,{label:'Courier Name'},h('input',{type:'text',value:form.courierName||'',onChange:e=>set('courierName',e.target.value),placeholder:'DHL, FedEx, etc.'})),
+            h(FG,{label:'Tracking Number'},h('input',{type:'text',value:form.trackingNumber||'',onChange:e=>set('trackingNumber',e.target.value)})),
+            h(FG,{label:'Shipping Cost'},h('input',{type:'number',step:'0.01',value:form.shippingCost||'',onChange:e=>set('shippingCost',e.target.value),placeholder:'0.00'}))
+          ),
+          h(FG,{label:'Notes'},h('textarea',{value:form.notes||'',onChange:e=>set('notes',e.target.value),rows:2}))
+        ),
+        h('div',{className:'modal-footer'},
+          h('button',{className:'btn btn-secondary',onClick:()=>setShowForm(false)},'Cancel'),
+          h('button',{className:'btn btn-primary',onClick:save},editR?'Save Changes':'Create RMA')
+        )
+      )
+    )
+  );
+}
+
+// -- TOOLS PAGE ----------------------------------------------------------------
+function ToolsPage({db, user, onDbChange}) {
+  const [showForm,setShowForm]=useState(false);
+  const [editT,setEditT]=useState(null);
+  const [form,setForm]=useState({});
+  const tools=db.tools||[], users=db.users||[];
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const openForm=t=>{setEditT(t||null);setForm(t||{type:'Radiation Survey',manufacturer:'',model:'',serialNumber:'',owner:user.id,calibrationDate:'',expiryDate:''});setShowForm(true);};
+  const save=()=>{
+    if(!form.serialNumber||!form.model){alert('Serial Number and Model required');return;}
+    onDbChange(editT?{...db,tools:tools.map(t=>t.id===editT.id?{...form,id:editT.id}:t)}:{...db,tools:[...tools,{...form,id:nextId(tools)}]},true);
+    setShowForm(false);
+  };
+  const del=id=>{if(!confirm('Delete tool?'))return;onDbChange({...db,tools:tools.filter(t=>t.id!==id)},true);};
+  const isExp=d=>d&&new Date(d)<new Date();
+  return h('div',null,
+    h('div',{className:'sh'},h('div',{className:'sh-title'},'Tools & Equipment ('+tools.length+')'),h('button',{className:'btn btn-primary',onClick:()=>openForm(null)},h(Icon,{name:'plus',size:14}),' Add Tool')),
+    h('div',{className:'info-banner info-amber'},'⚠️ Tools with expired calibration dates (shown in red) cannot be used in Radiation Survey Reports.'),
+    h('div',{className:'card'},
+      tools.length===0?h('div',{className:'es'},h('div',{className:'es-icon'},'🔧'),h('p',null,'No tools added')):
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Type'),h('th',null,'Manufacturer'),h('th',null,'Model'),h('th',null,'Serial #'),h('th',null,'Owner'),h('th',null,'Calibration'),h('th',null,'Expiry'),h('th',null,'Actions'))),
+        h('tbody',null,tools.map(t=>{
+          const owner=users.find(u=>u.id===parseInt(t.owner));
+          const exp=isExp(t.expiryDate);
+          return h('tr',{key:t.id},
+            h('td',null,t.type),h('td',null,t.manufacturer),h('td',null,t.model),h('td',null,t.serialNumber),
+            h('td',null,owner?owner.name:'—'),h('td',null,fmtDate(t.calibrationDate)),
+            h('td',null,h('span',{style:{color:exp?'var(--red)':'var(--green)',fontWeight:600}},fmtDate(t.expiryDate)||'—')),
+            h('td',null,h('div',{className:'tbl-actions'},h('button',{className:'btn btn-secondary btn-xs',onClick:()=>openForm(t)},h(Icon,{name:'edit',size:12})),user.role==='Admin'&&h('button',{className:'btn btn-danger btn-xs',onClick:()=>del(t.id)},h(Icon,{name:'trash',size:12}))))
+          );
+        }))
+      )
+    ),
+    showForm&&h('div',{className:'modal-bg'},h('div',{className:'modal'},
+      h('div',{className:'modal-header'},h('h3',null,editT?'Edit Tool':'Add Tool'),h('button',{className:'modal-close',onClick:()=>setShowForm(false)},'✕')),
+      h('div',{className:'modal-body'},
+        h('div',{className:'grid-2'},h(FG,{label:'Tool Type'},h('input',{type:'text',value:form.type||'',onChange:e=>set('type',e.target.value)})),h(FG,{label:'Manufacturer'},h('input',{type:'text',value:form.manufacturer||'',onChange:e=>set('manufacturer',e.target.value)}))),
+        h('div',{className:'grid-2'},h(FG,{label:'Model *'},h('input',{type:'text',value:form.model||'',onChange:e=>set('model',e.target.value)})),h(FG,{label:'Serial Number *'},h('input',{type:'text',value:form.serialNumber||'',onChange:e=>set('serialNumber',e.target.value)}))),
+        h('div',{className:'grid-3'},
+          h(FG,{label:'Owner'},h('select',{value:form.owner||'',onChange:e=>set('owner',e.target.value)},h('option',{value:''},'— Select —'),users.map(u=>h('option',{key:u.id,value:u.id},u.name)))),
+          h(FG,{label:'Calibration Date'},h('input',{type:'date',value:form.calibrationDate||'',onChange:e=>set('calibrationDate',e.target.value)})),
+          h(FG,{label:'Expiry Date'},h('input',{type:'date',value:form.expiryDate||'',onChange:e=>set('expiryDate',e.target.value)}))
+        )
+      ),
+      h('div',{className:'modal-footer'},h('button',{className:'btn btn-secondary',onClick:()=>setShowForm(false)},'Cancel'),h('button',{className:'btn btn-primary',onClick:save},editT?'Save Changes':'Add Tool'))
+    ))
+  );
+}
+
+// -- USERS PAGE ---------------------------------------------------------------
+function UsersPage({db, user: cu, onDbChange}) {
+  const [showForm,setShowForm]=useState(false);
+  const [editU,setEditU]=useState(null);
+  const [form,setForm]=useState({});
+  const [importMsg,setImportMsg]=useState('');
+  const fileRef=useRef(null);
+  const users=db.users||[];
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const openForm=u=>{
+    setEditU(u||null);
+    const dp={};PERMS.forEach(p=>dp[p]=false);
+    setForm(u?{...u,password:''}:{name:'',email:'',password:'',role:'Tech',active:true,permissions:{...dp}});
+    setShowForm(true);
+  };
+  const setRole=role=>{
+    const p={};
+    if(role==='Admin')PERMS.forEach(x=>p[x]=true);
+    else if(role==='Tech'){p.tickets=true;p.machines=true;p.tools=true;}
+    else if(role==='Accounting'){p.tickets=true;p.customers=true;p.reports=true;}
+    else if(role==='Manager'){p.tickets=true;p.machines=true;p.customers=true;p.reports=true;p.tools=true;}
+    setForm(f=>({...f,role,permissions:p}));
+  };
+  const toggleP=p=>setForm(f=>({...f,permissions:{...f.permissions,[p]:!f.permissions[p]}}));
+  const save=()=>{
+    if(!form.name||!form.email||(!editU&&!form.password)){alert('Name, email and password required');return;}
+    const all=users;
+    let updated;
+    if(editU){const u={...form,id:editU.id};if(!form.password)u.password=editU.password;updated={...db,users:all.map(x=>x.id===editU.id?u:x)};}
+    else{updated={...db,users:[...all,{...form,id:nextId(all)}]};}
+    onDbChange(updated,true);setShowForm(false);
+    // Update session if editing self
+    if(editU&&editU.id===cu.id){
+      const fresh=(updated.users||[]).find(u=>u.id===cu.id);
+      if(fresh)sessionStorage.setItem('vita_user',JSON.stringify(fresh));
+    }
+  };
+  const del=id=>{if(id===cu.id){alert('Cannot delete yourself');return;}if(!confirm('Delete user?'))return;onDbChange({...db,users:users.filter(u=>u.id!==id)},true);};
+  const downloadTemplate=()=>{
+    const rows=[
+      ['name','email','password','role','active'],
+      ['John Smith','john@vitadetection.com','Temp@1234','Tech','true'],
+      ['Sara Accounting','sara@vitadetection.com','Temp@1234','Accounting','true'],
+      ['Mike Manager','mike@vitadetection.com','Temp@1234','Manager','true'],
+    ];
+    const csv=rows.map(r=>r.join(',')).join(String.fromCharCode(10));
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='users_import_template.csv';
+    a.click();
+  };
+  const handleImport=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const lines=ev.target.result.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+        const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+        let added=0,updated=0,skipped=0;
+        let current=[...users];
+        const validRoles=['Admin','Tech','Accounting','Manager','Viewer'];
+        for(let i=1;i<lines.length;i++){
+          const vals=lines[i].split(',').map(v=>v.trim().replace(/"/g,'').replace(/\r/g,''));
+          const row={};
+          headers.forEach((h,idx)=>row[h]=vals[idx]||'');
+          if(!row.name||!row.email){skipped++;continue;}
+          const role=validRoles.includes(row.role)?row.role:'Tech';
+          const active=row.active!=='false';
+          const dp={};PERMS.forEach(p=>dp[p]=false);
+          if(role==='Admin')PERMS.forEach(p=>dp[p]=true);
+          else if(role==='Tech'){dp.tickets=true;dp.machines=true;dp.tools=true;}
+          else if(role==='Accounting'){dp.tickets=true;dp.customers=true;dp.reports=true;}
+          else if(role==='Manager'){dp.tickets=true;dp.machines=true;dp.customers=true;dp.reports=true;dp.tools=true;}
+          const existing=current.find(u=>u.email.toLowerCase()===row.email.toLowerCase());
+          if(existing){
+            const upd={...existing,...row,id:existing.id,role,active,permissions:dp};
+            if(!row.password)upd.password=existing.password;
+            current=current.map(u=>u.id===existing.id?upd:u);
+            updated++;
+          } else {
+            if(!row.password){skipped++;continue;}
+            current.push({...row,id:nextId(current),role,active,permissions:dp});
+            added++;
+          }
+        }
+        onDbChange({...db,users:current},true);
+        setImportMsg('Import complete: '+added+' added, '+updated+' updated, '+skipped+' skipped.');
+        setTimeout(()=>setImportMsg(''),5000);
+      }catch(err){setImportMsg('Error: '+err.message);}
+    };
+    reader.readAsText(file);
+    e.target.value='';
+  };
+  return h('div',null,
+    h('div',{className:'sh'},
+      h('div',{className:'sh-title'},'Users & Permissions ('+users.length+')'),
+      h('div',{style:{display:'flex',gap:8}},
+        h('button',{className:'btn btn-secondary',onClick:downloadTemplate},'⬇ Template'),
+        h('button',{className:'btn btn-secondary',onClick:()=>fileRef.current.click()},'⬆ Import CSV'),
+        h('input',{type:'file',accept:'.csv',ref:fileRef,style:{display:'none'},onChange:handleImport}),
+        h('button',{className:'btn btn-primary',onClick:()=>openForm(null)},h(Icon,{name:'plus',size:14}),' Add User')
+      )
+    ),
+    importMsg&&h('div',{className:'info-banner info-green',style:{marginBottom:12}},importMsg),
+    h('div',{className:'card'},
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Email'),h('th',null,'Role'),h('th',null,'Status'),h('th',null,'Permissions'),h('th',null,'Actions'))),
+        h('tbody',null,users.map(u=>h('tr',{key:u.id},
+          h('td',null,h('div',{style:{display:'flex',alignItems:'center',gap:10}},h('div',{className:'avatar',style:{width:28,height:28,fontSize:11,background:'var(--navy)'}},initials(u.name)),h('strong',null,u.name))),
+          h('td',null,u.email),
+          h('td',null,h('span',{className:'badge '+rc(u.role)},u.role)),
+          h('td',null,h('span',{className:'badge '+(u.active?'b-resolved':'b-pending')},u.active?'Active':'Inactive')),
+          h('td',null,h('div',{style:{display:'flex',gap:3,flexWrap:'wrap'}},Object.entries(u.permissions||{}).filter(([,v])=>v).map(([k])=>h('span',{key:k,className:'badge b-open',style:{fontSize:10}},k)))),
+          h('td',null,h('div',{className:'tbl-actions'},
+            h('button',{className:'btn btn-secondary btn-xs',onClick:()=>openForm(u)},h(Icon,{name:'edit',size:12})),
+            cu.role==='Admin'&&u.id!==cu.id&&h('button',{className:'btn btn-danger btn-xs',onClick:()=>del(u.id)},h(Icon,{name:'trash',size:12}))
+          ))
+        )))
+      )
+    ),
+    showForm&&h('div',{className:'modal-bg'},h('div',{className:'modal'},
+      h('div',{className:'modal-header'},h('h3',null,editU?'Edit User':'Add User'),h('button',{className:'modal-close',onClick:()=>setShowForm(false)},'✕')),
+      h('div',{className:'modal-body'},
+        h('div',{className:'grid-2'},h(FG,{label:'Full Name *'},h('input',{type:'text',value:form.name||'',onChange:e=>set('name',e.target.value)})),h(FG,{label:'Email *'},h('input',{type:'email',value:form.email||'',onChange:e=>set('email',e.target.value)}))),
+        h('div',{className:'grid-2'},
+          h(FG,{label:editU?'New Password (blank = keep)':'Password *'},h('input',{type:'password',value:form.password||'',onChange:e=>set('password',e.target.value),placeholder:'Min 8 chars, uppercase, number, symbol'})),
+          h(FG,{label:'Role'},h('select',{value:form.role||'',onChange:e=>setRole(e.target.value)},['Admin','Tech','Accounting','Manager','Viewer'].map(r=>h('option',{key:r,value:r},r))))
+        ),
+        h(FG,{label:'Status'},h('select',{value:form.active?'true':'false',onChange:e=>set('active',e.target.value==='true')},h('option',{value:'true'},'Active'),h('option',{value:'false'},'Inactive'))),
+        h('div',{style:{borderTop:'1px solid var(--gray-border)',paddingTop:14,marginTop:4}},
+          h('div',{style:{fontSize:11,fontWeight:700,color:'var(--gray)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10}},'Page Permissions'),
+          PERMS.map(p=>h('div',{key:p,className:'ptoggle'},h('span',{style:{fontSize:13,textTransform:'capitalize'}},p),h('div',{className:'toggle'+((form.permissions||{})[p]?' on':''),onClick:()=>toggleP(p)},h('div',{className:'toggle-k'}))))
+        )
+      ),
+      h('div',{className:'modal-footer'},h('button',{className:'btn btn-secondary',onClick:()=>setShowForm(false)},'Cancel'),h('button',{className:'btn btn-primary',onClick:save},editU?'Save Changes':'Create User'))
+    ))
+  );
+}
+
+// -- REPORTS PAGE -------------------------------------------------------------
+function ReportsPage({db}) {
+  const {tickets=[],machines=[],customers=[],users=[],parts:partsDb=[],rma:rmaDb=[]} = db;
+  const [rep,setRep]=useState('overview');
+  const [f,setF]=useState({df:'',dt:'',tech:'',status:'',type:''});
+  const sf=(k,v)=>setF(x=>({...x,[k]:v}));
+  const toMs=d=>{try{return d?new Date(d).getTime():0;}catch{return 0;}};
+  const fmtD=d=>{if(!d)return '--';try{return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}catch{return d;}};
+  const listsDb=db.lists||{};
+  const techUsers=users.filter(u=>u.role==='Tech'||u.role==='Admin');
+
+  const ft=tickets.filter(t=>{
+    if(f.df&&toMs(t.contactDate)<toMs(f.df))return false;
+    if(f.dt&&toMs(t.contactDate)>toMs(f.dt))return false;
+    if(f.tech&&t.assignedTo&&parseInt(t.assignedTo)!==parseInt(f.tech))return false;
+    if(f.status&&t.status!==f.status)return false;
+    if(f.type&&t.ticketType!==f.type)return false;
+    return true;
+  });
+
+  const byKey=(arr,key)=>{const r={};arr.forEach(x=>{const k=x[key]||'Unknown';r[k]=(r[k]||0)+1;});return r;};
+  const avgN=(arr,fn)=>{const v=arr.map(fn).filter(x=>x>0);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):0;};
+
+  const getHrs=t=>{
+    if(!t.contactDate)return 0;
+    const tl=t.timeline||[];
+    const res=tl.find(e=>(e.action||'').toLowerCase().includes('resolved')||(e.action||'').toLowerCase().includes('closed'));
+    if(!res)return 0;
+    try{const s=new Date(t.contactDate).getTime(),e=new Date(res.date||'').getTime();return Math.max(0,Math.round((e-s)/3600000));}catch{return 0;}
+  };
+
+  const pmDue=machines.filter(m=>{
+    const pmt=tickets.filter(t=>t.machineId===m.id&&(t.ticketType||'').includes('Preventive'));
+    if(!pmt.length)return true;
+    const last=pmt.map(t=>toMs(t.contactDate)).sort((a,b)=>b-a)[0];
+    return (Date.now()-last)>365*24*3600*1000;
+  });
+
+  const partsCounts={};
+  ft.forEach(t=>{if(t.subCategory)partsCounts[t.subCategory]=(partsCounts[t.subCategory]||0)+1;});
+
+  const chargeable=ft.filter(t=>t.quotationAmount&&parseFloat(t.quotationAmount)>0);
+  const totalCost=chargeable.reduce((s,t)=>s+parseFloat(t.quotationAmount||0),0);
+
+  const techStats={};
+  ft.forEach(t=>{
+    const u=users.find(x=>x.id===parseInt(t.assignedTo));
+    const n=u?u.name:'Unassigned';
+    if(!techStats[n])techStats[n]={open:0,resolved:0,closed:0,total:0,hours:[]};
+    techStats[n].total++;
+    if(t.status==='Open')techStats[n].open++;
+    else if((t.status||'').startsWith('Resolved'))techStats[n].resolved++;
+    else if(t.status==='Closed')techStats[n].closed++;
+    const hr=getHrs(t);if(hr>0)techStats[n].hours.push(hr);
+  });
+
+  const csvDl=(data,name)=>{
+    if(!data.length)return;
+    const hdr=Object.keys(data[0]);
+    const rows=data.map(r=>hdr.map(h=>(r[h]||'').toString().replace(/,/g,';')).join(','));
+    const csv=[hdr.join(','),...rows].join(String.fromCharCode(10));
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download=name;a.click();
+  };
+
+  const Bar=({label,count,max,color})=>h('div',{style:{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #f0f4f8'}},
+    h('div',{style:{fontSize:13,flex:'0 0 200px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',title:label}},label),
+    h('div',{style:{flex:1,background:'#f1f5f9',borderRadius:4,height:10,overflow:'hidden'}},
+      h('div',{style:{width:(max?Math.round(count/max*100):0)+'%',height:'100%',background:color||'var(--navy)',borderRadius:4}})
+    ),
+    h('div',{style:{fontWeight:700,fontSize:13,minWidth:36,textAlign:'right'}},count)
+  );
+
+  const SB=({label,value,sub,color,icon})=>h('div',{className:'stat-card'},
+    h('div',{className:'stat-icon',style:{background:color||'#dbeafe'}},icon||'📊'),
+    h('div',{className:'stat-lbl'},label),
+    h('div',{className:'stat-val'},value),
+    sub&&h('div',{className:'stat-sub'},sub)
+  );
+
+  const REPS=[
+    {id:'overview',lbl:'Overview'},{id:'status',lbl:'Status Detail'},
+    {id:'tech',lbl:'Tech Performance'},{id:'resolution',lbl:'Resolution Time'},
+    {id:'defects',lbl:'Defects & Parts'},{id:'cost',lbl:'Ticket Costs'},
+    {id:'parts',lbl:'Parts Revenue'},{id:'rma',lbl:'RMA & Warranty Cost'},
+    {id:'pm',lbl:'PM Due'},{id:'warranty',lbl:'Warranty Alerts'},
+  ];
+
+  return h('div',null,
+    h('div',{className:'sh'},h('div',{className:'sh-title'},'Reports & Analytics')),
+    h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:20}},
+      REPS.map(r=>h('button',{key:r.id,className:'btn '+(rep===r.id?'btn-primary':'btn-secondary'),style:{fontSize:12,padding:'6px 14px'},onClick:()=>setRep(r.id)},r.lbl))
+    ),
+    h('div',{className:'card',style:{marginBottom:20}},
+      h('div',{style:{fontSize:12,fontWeight:700,color:'var(--gray)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10}},'Filters'),
+      h('div',{style:{display:'flex',gap:10,flexWrap:'wrap',alignItems:'flex-end'}},
+        h('div',null,h('label',{style:{fontSize:11,fontWeight:600,color:'var(--gray)',display:'block',marginBottom:4}},'From'),h('input',{type:'date',value:f.df,onChange:e=>sf('df',e.target.value),style:{padding:'7px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}})),
+        h('div',null,h('label',{style:{fontSize:11,fontWeight:600,color:'var(--gray)',display:'block',marginBottom:4}},'To'),h('input',{type:'date',value:f.dt,onChange:e=>sf('dt',e.target.value),style:{padding:'7px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}})),
+        h('div',null,h('label',{style:{fontSize:11,fontWeight:600,color:'var(--gray)',display:'block',marginBottom:4}},'Tech'),h('select',{value:f.tech,onChange:e=>sf('tech',e.target.value),style:{padding:'7px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}},h('option',{value:''},'All Techs'),...techUsers.map(u=>h('option',{key:u.id,value:u.id},u.name)))),
+        h('div',null,h('label',{style:{fontSize:11,fontWeight:600,color:'var(--gray)',display:'block',marginBottom:4}},'Status'),h('select',{value:f.status,onChange:e=>sf('status',e.target.value),style:{padding:'7px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}},h('option',{value:''},'All Statuses'),...(listsDb.ticketStatuses||[]).map(s=>h('option',{key:s,value:s},s)))),
+        h('div',null,h('label',{style:{fontSize:11,fontWeight:600,color:'var(--gray)',display:'block',marginBottom:4}},'Type'),h('select',{value:f.type,onChange:e=>sf('type',e.target.value),style:{padding:'7px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}},h('option',{value:''},'All Types'),...(listsDb.ticketTypes||[]).map(s=>h('option',{key:s,value:s},s)))),
+        h('button',{className:'btn btn-secondary',style:{fontSize:12,alignSelf:'flex-end'},onClick:()=>setF({df:'',dt:'',tech:'',status:'',type:''})},'Clear'),
+        h('div',{style:{fontSize:12,color:'var(--gray)',alignSelf:'flex-end',padding:'8px 0'}},ft.length+' tickets')
+      )
+    ),
+
+    rep==='overview'&&h('div',null,
+      h('div',{className:'grid-4',style:{marginBottom:20}},
+        h(SB,{label:'Total Tickets',value:ft.length,icon:'🎫',color:'#dbeafe'}),
+        h(SB,{label:'Open',value:ft.filter(t=>t.status==='Open').length,icon:'🔴',color:'#fee2e2'}),
+        h(SB,{label:'Resolved',value:ft.filter(t=>(t.status||'').startsWith('Resolved')).length,icon:'✅',color:'#d1fae5'}),
+        h(SB,{label:'Avg Resolution',value:avgN(ft,getHrs)+'h',icon:'⏱',color:'#fef3c7',sub:'avg hours to resolve'})
+      ),
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}},
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('div',{className:'card-title'},'By Ticket Type'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(Object.entries(byKey(ft,'ticketType')).map(([k,v])=>({Type:k,Count:v})),'by_type.csv')},'⬇ CSV')),
+          Object.entries(byKey(ft,'ticketType')).length===0?h('div',{className:'es'},h('p',null,'No data')):
+          Object.entries(byKey(ft,'ticketType')).sort((a,b)=>b[1]-a[1]).map(([k,v])=>h(Bar,{key:k,label:k,count:v,max:Math.max(1,...Object.values(byKey(ft,'ticketType')))}))
+        ),
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('div',{className:'card-title'},'By Status'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(Object.entries(byKey(ft,'status')).map(([k,v])=>({Status:k,Count:v})),'by_status.csv')},'⬇ CSV')),
+          Object.entries(byKey(ft,'status')).length===0?h('div',{className:'es'},h('p',null,'No data')):
+          Object.entries(byKey(ft,'status')).sort((a,b)=>b[1]-a[1]).map(([k,v])=>h(Bar,{key:k,label:k,count:v,max:Math.max(1,...Object.values(byKey(ft,'status'))),color:'var(--blue)'}))
+        )
+      )
+    ),
+
+    rep==='status'&&h('div',{className:'card'},
+      h('div',{className:'card-header'},h('div',{className:'card-title'},'Status Detail ('+ft.length+' tickets)'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(ft.map(t=>({Ticket:t.ticketNumber,Date:t.contactDate,Status:t.status,Type:t.ticketType,Customer:t.customerName,Assigned:(users.find(u=>u.id===parseInt(t.assignedTo))||{name:'--'}).name,Severity:t.severity,Serial:t.serialNumber})),'status_detail.csv')},'⬇ Export All')),
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Ticket'),h('th',null,'Date'),h('th',null,'Type'),h('th',null,'Status'),h('th',null,'Customer'),h('th',null,'Assigned To'),h('th',null,'Severity'))),
+        h('tbody',null,ft.map(t=>{
+          const u=users.find(x=>x.id===parseInt(t.assignedTo));
+          const sc2=t.status==='Open'?'b-open':t.status==='In Progress'?'b-progress':t.status==='Closed'?'b-closed':'b-resolved';
+          return h('tr',{key:t.id},h('td',null,h('strong',null,t.ticketNumber)),h('td',null,fmtD(t.contactDate)),h('td',null,(t.ticketType||'').split('/')[0].trim()),h('td',null,h('span',{className:'badge '+sc2},t.status)),h('td',null,t.customerName||'--'),h('td',null,u?u.name:'--'),h('td',null,t.severity?h('span',{className:'badge '+(t.severity==='Critical'?'b-crit':'b-noncrit')},t.severity):'--'));
+        }))
+      )
+    ),
+
+    rep==='tech'&&h('div',null,
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'Tech Performance'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(Object.entries(techStats).map(([n,s])=>({Tech:n,Total:s.total,Open:s.open,Resolved:s.resolved,Closed:s.closed,AvgHours:s.hours.length?Math.round(s.hours.reduce((a,b)=>a+b,0)/s.hours.length):0})),'tech_perf.csv')},'⬇ Export')),
+        Object.keys(techStats).length===0?h('div',{className:'es'},h('p',null,'No data')):
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Tech'),h('th',null,'Total'),h('th',null,'Open'),h('th',null,'Resolved'),h('th',null,'Closed'),h('th',null,'Avg Res. Time'))),
+          h('tbody',null,Object.entries(techStats).sort((a,b)=>b[1].total-a[1].total).map(([n,s])=>h('tr',{key:n},
+            h('td',null,h('strong',null,n)),
+            h('td',null,h('span',{className:'badge b-open'},s.total)),
+            h('td',null,h('span',{className:'badge b-pending'},s.open)),
+            h('td',null,h('span',{className:'badge b-resolved'},s.resolved)),
+            h('td',null,h('span',{className:'badge b-closed'},s.closed)),
+            h('td',null,s.hours.length?(Math.round(s.hours.reduce((a,b)=>a+b,0)/s.hours.length)+'h'):'--')
+          )))
+        )
+      )
+    ),
+
+    rep==='resolution'&&h('div',null,
+      h('div',{className:'grid-4',style:{marginBottom:20}},
+        h(SB,{label:'Avg Resolution',value:avgN(ft,getHrs)+'h',icon:'⏱',color:'#fef3c7'}),
+        h(SB,{label:'Under 8h',value:ft.filter(t=>getHrs(t)>0&&getHrs(t)<=8).length,icon:'🟢',color:'#d1fae5'}),
+        h(SB,{label:'8 - 48h',value:ft.filter(t=>getHrs(t)>8&&getHrs(t)<=48).length,icon:'🟡',color:'#fef3c7'}),
+        h(SB,{label:'Over 48h',value:ft.filter(t=>getHrs(t)>48).length,icon:'🔴',color:'#fee2e2'})
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'Resolution Time per Ticket'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(ft.filter(t=>getHrs(t)>0).map(t=>({Ticket:t.ticketNumber,Date:t.contactDate,Type:t.ticketType,Status:t.status,ResHours:getHrs(t),Customer:t.customerName})),'resolution.csv')},'⬇ Export')),
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Ticket'),h('th',null,'Date'),h('th',null,'Type'),h('th',null,'Status'),h('th',null,'Resolution Time'),h('th',null,'Customer'))),
+          h('tbody',null,ft.filter(t=>getHrs(t)>0).sort((a,b)=>getHrs(b)-getHrs(a)).map(t=>{
+            const hr=getHrs(t);
+            const cl=hr<=8?'b-resolved':hr<=48?'b-progress':'b-pending';
+            return h('tr',{key:t.id},h('td',null,h('strong',null,t.ticketNumber)),h('td',null,fmtD(t.contactDate)),h('td',null,(t.ticketType||'').split('/')[0].trim()),h('td',null,h('span',{className:'badge '+(t.status==='Closed'?'b-closed':'b-resolved')},t.status)),h('td',null,h('span',{className:'badge '+cl},hr+'h')),h('td',null,t.customerName||'--'));
+          }))
+        )
+      )
+    ),
+
+    rep==='defects'&&h('div',null,
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}},
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('div',{className:'card-title'},'By Sub-Category'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(Object.entries(partsCounts).map(([k,v])=>({SubCategory:k,Count:v})),'defects.csv')},'⬇ CSV')),
+          Object.keys(partsCounts).length===0?h('div',{className:'es'},h('p',null,'No defect data')):
+          Object.entries(partsCounts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>h(Bar,{key:k,label:k,count:v,max:Math.max(1,...Object.values(partsCounts)),color:'#dc2626'}))
+        ),
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('div',{className:'card-title'},'By Category')),
+          Object.entries(byKey(ft,'category')).sort((a,b)=>b[1]-a[1]).map(([k,v])=>h(Bar,{key:k,label:k,count:v,max:Math.max(1,...Object.values(byKey(ft,'category'))),color:'#7c3aed'}))
+        )
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'Defect Detail'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(ft.filter(t=>t.category).map(t=>({Ticket:t.ticketNumber,Date:t.contactDate,Category:t.category,SubCategory:t.subCategory,Problem:t.reportedProblem,ActionTaken:t.actionTaken,Customer:t.customerName,Serial:t.serialNumber})),'defects_detail.csv')},'⬇ Export')),
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Ticket'),h('th',null,'Date'),h('th',null,'Category'),h('th',null,'Sub-Category'),h('th',null,'Problem'),h('th',null,'Customer'))),
+          h('tbody',null,ft.filter(t=>t.category).map(t=>h('tr',{key:t.id},h('td',null,h('strong',null,t.ticketNumber)),h('td',null,fmtD(t.contactDate)),h('td',null,t.category||'--'),h('td',null,t.subCategory||'--'),h('td',null,h('span',{style:{fontSize:12}},(t.reportedProblem||'').slice(0,55)+(t.reportedProblem&&t.reportedProblem.length>55?'...':''))),h('td',null,t.customerName||'--'))))
+        )
+      )
+    ),
+
+    rep==='cost'&&h('div',null,
+      h('div',{className:'grid-4',style:{marginBottom:20}},
+        h(SB,{label:'Total Revenue',value:'$'+totalCost.toLocaleString(),icon:'💰',color:'#d1fae5'}),
+        h(SB,{label:'Avg per Ticket',value:'$'+(chargeable.length?Math.round(totalCost/chargeable.length).toLocaleString():0),icon:'📊',color:'#dbeafe'}),
+        h(SB,{label:'Chargeable',value:chargeable.length,icon:'💳',color:'#e0e7ff'}),
+        h(SB,{label:'With PO',value:ft.filter(t=>t.customerPO).length,icon:'📋',color:'#fef3c7'})
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'Cost Detail'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(chargeable.map(t=>({Ticket:t.ticketNumber,Date:t.contactDate,Customer:t.customerName,QuotationNo:t.quotationNumber,Amount:t.quotationAmount,PO:t.customerPO,Status:t.status})),'cost_of_service.csv')},'⬇ Export')),
+        chargeable.length===0?h('div',{className:'es'},h('p',null,'No tickets with quotation amounts. Add Quotation Amount to tickets to track costs.')):
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Ticket'),h('th',null,'Date'),h('th',null,'Customer'),h('th',null,'Quotation #'),h('th',null,'Amount'),h('th',null,'PO'),h('th',null,'Status'))),
+          h('tbody',null,chargeable.sort((a,b)=>parseFloat(b.quotationAmount)-parseFloat(a.quotationAmount)).map(t=>h('tr',{key:t.id},h('td',null,h('strong',null,t.ticketNumber)),h('td',null,fmtD(t.contactDate)),h('td',null,t.customerName||'--'),h('td',null,t.quotationNumber||'--'),h('td',null,h('strong',{style:{color:'var(--green)'}},'$'+parseFloat(t.quotationAmount).toLocaleString())),h('td',null,t.customerPO||'--'),h('td',null,h('span',{className:'badge '+(t.status==='Closed'?'b-closed':'b-progress')},t.status)))))
+        )
+      )
+    ),
+
+    rep==='pm'&&h('div',null,
+      h('div',{className:'info-banner info-amber',style:{marginBottom:16}},'Machines with no Preventive Maintenance in the last 12 months, or that have never had one.'),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'PM Due ('+pmDue.length+' machines)'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(pmDue.map(m=>{const c=customers.find(x=>x.id===m.customerId);const pt=tickets.filter(t=>t.machineId===m.id&&(t.ticketType||'').includes('Preventive')).sort((a,b)=>toMs(b.contactDate)-toMs(a.contactDate));return{Serial:m.serialNumber,Model:m.model,Customer:c?c.name:'--',Location:m.location,LastPM:pt.length?pt[0].contactDate:'Never',Status:m.status};}), 'pm_due.csv')},'⬇ Export')),
+        pmDue.length===0?h('div',{className:'es'},h('p',null,'All machines are up to date with PM.')):
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Serial #'),h('th',null,'Model'),h('th',null,'Customer'),h('th',null,'Location'),h('th',null,'Last PM Visit'),h('th',null,'Machine Status'))),
+          h('tbody',null,pmDue.map(m=>{
+            const c=customers.find(x=>x.id===m.customerId);
+            const pt=tickets.filter(t=>t.machineId===m.id&&(t.ticketType||'').includes('Preventive')).sort((a,b)=>toMs(b.contactDate)-toMs(a.contactDate));
+            const last=pt.length?pt[0].contactDate:null;
+            return h('tr',{key:m.id},h('td',null,h('strong',null,m.serialNumber)),h('td',null,m.model),h('td',null,c?c.name:'--'),h('td',null,m.location||'--'),h('td',null,h('span',{style:{color:last?'var(--amber)':'var(--red)',fontWeight:600}},last?fmtD(last):'Never')),h('td',null,h('span',{className:'badge '+(m.status==='Operational'?'b-resolved':'b-pending')},m.status||'--')));
+          }))
+        )
+      )
+    ),
+
+    rep==='warranty'&&h('div',null,
+      h('div',{className:'grid-4',style:{marginBottom:16}},
+        h(SB,{label:'Expired',value:machines.filter(m=>parseInt(m.warrantyDays)<=0).length,icon:'🔴',color:'#fee2e2',sub:'Warranty expired'}),
+        h(SB,{label:'< 30 days',value:machines.filter(m=>{const w=parseInt(m.warrantyDays)||0;return w>0&&w<=30;}).length,icon:'⚠️',color:'#fee2e2',sub:'Critical'}),
+        h(SB,{label:'31 - 90 days',value:machines.filter(m=>{const w=parseInt(m.warrantyDays)||0;return w>30&&w<=90;}).length,icon:'🟡',color:'#fef3c7',sub:'Warning'}),
+        h(SB,{label:'> 90 days',value:machines.filter(m=>parseInt(m.warrantyDays)>90).length,icon:'✅',color:'#d1fae5',sub:'Healthy'})
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('div',{className:'card-title'},'All Machines - Warranty Status'),h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(machines.map(m=>{const c=customers.find(x=>x.id===m.customerId);const wd=parseInt(m.warrantyDays)||0;return{Serial:m.serialNumber,Model:m.model,Customer:c?c.name:'--',Location:m.location,DaysLeft:wd,Status:wd<=0?'Expired':wd<=30?'Critical':wd<=90?'Warning':'Active'};}), 'warranty.csv')},'⬇ Export')),
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Serial #'),h('th',null,'Model'),h('th',null,'Customer'),h('th',null,'Location'),h('th',null,'Days Left'),h('th',null,'Status'))),
+          h('tbody',null,[...machines].sort((a,b)=>(parseInt(a.warrantyDays)||0)-(parseInt(b.warrantyDays)||0)).map(m=>{
+            const c=customers.find(x=>x.id===m.customerId);
+            const wd=parseInt(m.warrantyDays)||0;
+            const ws=wd<=0?'Expired':wd<=30?'Critical':wd<=90?'Warning':'Active';
+            const wc=wd<=0?'b-pending':wd<=30?'b-crit':wd<=90?'b-noncrit':'b-resolved';
+            return h('tr',{key:m.id},h('td',null,h('strong',null,m.serialNumber)),h('td',null,m.model),h('td',null,c?c.name:'--'),h('td',null,m.location||'--'),h('td',null,h('span',{style:{fontWeight:700,color:wd<=0?'var(--red)':wd<=30?'var(--red)':wd<=90?'var(--amber)':'var(--green)'}},wd>0?(wd+' days'):'EXPIRED')),h('td',null,h('span',{className:'badge '+wc},ws)));
+          }))
+        )
+      )
+    )
+
+    ,
+
+    rep==='parts'&&h('div',null,
+      h('div',{className:'grid-4',style:{marginBottom:16}},
+        h(SB,{label:'Total Parts',value:partsDb.length,icon:'📦',color:'#dbeafe'}),
+        h(SB,{label:'Stock Cost Value',value:'$'+Math.round(partsDb.reduce((s,p)=>s+(parseFloat(p.purchaseCost||0)*parseInt(p.stockQty||0)),0)).toLocaleString(),icon:'💸',color:'#fee2e2',sub:'Total purchase value'}),
+        h(SB,{label:'Stock Sell Value',value:'$'+Math.round(partsDb.reduce((s,p)=>s+(parseFloat(p.sellingPrice||0)*parseInt(p.stockQty||0)),0)).toLocaleString(),icon:'💰',color:'#d1fae5',sub:'Potential revenue'}),
+        h(SB,{label:'Potential Profit',value:'$'+Math.round(partsDb.reduce((s,p)=>s+((parseFloat(p.sellingPrice||0)-parseFloat(p.purchaseCost||0))*parseInt(p.stockQty||0)),0)).toLocaleString(),icon:'📈',color:'#e0e7ff',sub:'If all stock sold'})
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},
+          h('div',{className:'card-title'},'Parts Catalogue - Pricing & Margins'),
+          h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(partsDb.map(p=>({PartNumber:p.partNumber,Description:p.description,Category:p.category,Stock:p.stockQty,MinStock:p.minStock,CostPrice:p.purchaseCost,SellingPrice:p.sellingPrice,Currency:p.currency,Margin:p.purchaseCost&&p.sellingPrice?Math.round(((parseFloat(p.sellingPrice)-parseFloat(p.purchaseCost))/parseFloat(p.sellingPrice))*100)+'%':'--',StockValueCost:'$'+Math.round(parseFloat(p.purchaseCost||0)*parseInt(p.stockQty||0)),StockValueSell:'$'+Math.round(parseFloat(p.sellingPrice||0)*parseInt(p.stockQty||0))})),'parts_revenue.csv')},'⬇ Export')
+        ),
+        partsDb.length===0?h('div',{className:'es'},h('p',null,'No parts in catalogue. Add parts in the Spare Parts section.')):
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Part #'),h('th',null,'Description'),h('th',null,'Category'),h('th',null,'Stock'),h('th',null,'Cost'),h('th',null,'Sell'),h('th',null,'Margin'),h('th',null,'Stock Val. (Cost)'),h('th',null,'Stock Val. (Sell)'))),
+          h('tbody',null,partsDb.map(p=>{
+            const cost=parseFloat(p.purchaseCost||0),sell=parseFloat(p.sellingPrice||0),qty=parseInt(p.stockQty||0);
+            const mg=cost&&sell?Math.round(((sell-cost)/sell)*100):null;
+            const low=qty<=parseInt(p.minStock||0);
+            return h('tr',{key:p.id,style:{background:low?'#fff5f5':''}},
+              h('td',null,h('strong',null,p.partNumber)),
+              h('td',null,p.description),
+              h('td',null,h('span',{className:'badge b-open',style:{fontSize:10}},p.category||'--')),
+              h('td',null,h('span',{style:{fontWeight:700,color:low?'var(--red)':'var(--navy)'}},qty)),
+              h('td',null,cost?'$'+cost.toFixed(2):'--'),
+              h('td',null,sell?h('strong',{style:{color:'var(--green)'}},'$'+sell.toFixed(2)):'--'),
+              h('td',null,mg!==null?h('span',{className:'badge '+(mg>=30?'b-resolved':mg>=15?'b-noncrit':'b-pending')},mg+'%'):'--'),
+              h('td',null,'$'+Math.round(cost*qty).toLocaleString()),
+              h('td',null,h('strong',null,'$'+Math.round(sell*qty).toLocaleString()))
+            );
+          }))
+        )
+      )
+    ),
+
+    rep==='rma'&&h('div',null,
+      h('div',{className:'grid-4',style:{marginBottom:16}},
+        h(SB,{label:'Total RMAs',value:rmaDb.length,icon:'🔄',color:'#dbeafe'}),
+        h(SB,{label:'Open RMAs',value:rmaDb.filter(r=>!['Replaced & Closed','Rejected'].includes(r.status)).length,icon:'⏳',color:'#fef3c7',sub:'Pending action'}),
+        h(SB,{label:'Warranty Cost Honored',value:'$'+Math.round(rmaDb.filter(r=>r.isWarranty==='Yes').reduce((s,r)=>s+(parseFloat(r.purchaseCost||0)*parseInt(r.qty||1)),0)).toLocaleString(),icon:'💸',color:'#fee2e2',sub:'VITA bore this cost'}),
+        h(SB,{label:'Chargeable Revenue',value:'$'+Math.round(rmaDb.filter(r=>r.isWarranty==='No').reduce((s,r)=>s+(parseFloat(r.sellingPrice||0)*parseInt(r.qty||1)),0)).toLocaleString(),icon:'💰',color:'#d1fae5',sub:'Out-of-warranty sales'})
+      ),
+      h('div',{className:'card',style:{marginBottom:16}},
+        h('div',{className:'card-header'},
+          h('div',{className:'card-title'},'RMA Detail Report'),
+          h('button',{className:'btn btn-secondary btn-xs',onClick:()=>csvDl(rmaDb.map(r=>{const t=tickets.find(x=>x.id===parseInt(r.ticketId));return{RMA:r.rmaNumber,Date:r.createdAt,Ticket:t?t.ticketNumber:'--',PartNumber:r.partNumber,Description:r.partDescription,Reason:r.reason,Direction:r.direction,Warranty:r.isWarranty,Qty:r.qty||1,UnitCost:r.purchaseCost,UnitSellPrice:r.sellingPrice,TotalCost:'$'+(parseFloat(r.purchaseCost||0)*parseInt(r.qty||1)).toFixed(2),TotalRevenue:'$'+(parseFloat(r.sellingPrice||0)*parseInt(r.qty||1)).toFixed(2),Shipping:r.shippingCost||0,Courier:r.courierName||'--',Tracking:r.trackingNumber||'--',Status:r.status}}),'rma_report.csv')},'⬇ Export All')
+        ),
+        rmaDb.length===0?h('div',{className:'es'},h('p',null,'No RMA records yet.')):
+        h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'RMA #'),h('th',null,'Date'),h('th',null,'Part #'),h('th',null,'Reason'),h('th',null,'Type'),h('th',null,'Qty'),h('th',null,'Cost'),h('th',null,'Revenue'),h('th',null,'Status'))),
+          h('tbody',null,rmaDb.map(r=>{
+            const totalCost=parseFloat(r.purchaseCost||0)*parseInt(r.qty||1);
+            const totalRev=parseFloat(r.sellingPrice||0)*parseInt(r.qty||1);
+            const sc2=r.status==='Pending Approval'?'b-progress':r.status==='Rejected'?'b-pending':r.status==='Replaced & Closed'?'b-resolved':'b-open';
+            return h('tr',{key:r.id},
+              h('td',null,h('strong',null,r.rmaNumber)),
+              h('td',null,r.createdAt||'--'),
+              h('td',null,h('strong',null,r.partNumber)),
+              h('td',null,h('span',{style:{fontSize:11,color:'var(--gray)'}},r.reason)),
+              h('td',null,h('span',{className:'badge '+(r.isWarranty==='Yes'?'b-crit':'b-open')},r.isWarranty==='Yes'?'Warranty':'Chargeable')),
+              h('td',null,r.qty||1),
+              h('td',null,totalCost>0?h('span',{style:{color:'var(--red)',fontWeight:600}},'$'+totalCost.toFixed(2)):'--'),
+              h('td',null,totalRev>0?h('span',{style:{color:'var(--green)',fontWeight:600}},'$'+totalRev.toFixed(2)):'--'),
+              h('td',null,h('span',{className:'badge '+sc2},r.status))
+            );
+          }))
+        )
+      ),
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}},
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('div',{className:'card-title'},'Most Returned Parts')),
+          (()=>{
+            const cnt={};
+            rmaDb.forEach(r=>{if(r.partNumber)cnt[r.partNumber]=(cnt[r.partNumber]||0)+parseInt(r.qty||1);});
+            const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,8);
+            if(!sorted.length)return h('div',{className:'es'},h('p',null,'No data'));
+            return sorted.map(([pn,qty])=>{
+              const p=partsDb.find(x=>x.partNumber===pn);
+              return h(Bar,{key:pn,label:pn+(p?' - '+p.description.slice(0,20):''),count:qty,max:Math.max(1,...sorted.map(x=>x[1])),color:'#dc2626'});
+            });
+          })()
+        ),
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('div',{className:'card-title'},'Warranty Cost by Month')),
+          (()=>{
+            const monthly={};
+            rmaDb.filter(r=>r.isWarranty==='Yes'&&r.createdAt).forEach(r=>{
+              const m=(r.createdAt||'').slice(0,7);
+              if(m)monthly[m]=(monthly[m]||0)+(parseFloat(r.purchaseCost||0)*parseInt(r.qty||1));
+            });
+            const sorted=Object.entries(monthly).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
+            if(!sorted.length)return h('div',{className:'es'},h('p',null,'No warranty cost data yet'));
+            const maxVal=Math.max(1,...sorted.map(x=>x[1]));
+            return sorted.map(([m,cost])=>h('div',{key:m,style:{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid #f0f4f8'}},
+              h('div',{style:{fontSize:13,flex:'0 0 80px'}},m),
+              h('div',{style:{flex:1,background:'#f1f5f9',borderRadius:4,height:8,overflow:'hidden'}},
+                h('div',{style:{width:Math.round(cost/maxVal*100)+'%',height:'100%',background:'var(--red)',borderRadius:4}})
+              ),
+              h('div',{style:{fontWeight:700,fontSize:12,minWidth:70,textAlign:'right',color:'var(--red)'}},'$'+Math.round(cost).toLocaleString())
+            ));
+          })()
+        )
+      )
+    )
+
+    );
+}
+
+// -- SETTINGS PAGE -------------------------------------------------------------
+function SettingsPage({db, user, onDbChange}) {
+  const [tab,setTab]=useState('lists');
+  const [selKey,setSelKey]=useState(Object.keys(db.lists||{})[0]||'ticketTypes');
+  const [nv,setNv]=useState('');
+  const [pwForm,setPwForm]=useState({cur:'',nw:'',conf:''});
+  const [pwMsg,setPwMsg]=useState('');
+  const lists=db.lists||{};
+
+  const addItem=()=>{
+    if(!nv.trim())return;
+    const updated={...db,lists:{...lists,[selKey]:[...(lists[selKey]||[]),nv.trim()]}};
+    onDbChange(updated,true);setNv('');
+  };
+  const removeItem=idx=>{
+    const updated={...db,lists:{...lists,[selKey]:(lists[selKey]||[]).filter((_,i)=>i!==idx)}};
+    onDbChange(updated,true);
+  };
+  const changePw=()=>{
+    const u=(db.users||[]).find(x=>x.id===user.id);
+    if(u.password!==pwForm.cur){setPwMsg('error:Current password is incorrect');return;}
+    if(pwForm.nw.length<8||!/[A-Z]/.test(pwForm.nw)||!/[0-9]/.test(pwForm.nw)||!/[^A-Za-z0-9]/.test(pwForm.nw)){setPwMsg('error:Password must be 8+ chars, 1 uppercase, 1 number, 1 symbol');return;}
+    if(pwForm.nw!==pwForm.conf){setPwMsg('error:Passwords do not match');return;}
+    onDbChange({...db,users:(db.users||[]).map(x=>x.id===user.id?{...x,password:pwForm.nw}:x)},true);
+    setPwMsg('success:Password changed successfully!');
+    setPwForm({cur:'',nw:'',conf:''});
+  };
+
+  return h('div',null,
+    h('div',{className:'sh'},h('div',{className:'sh-title'},'Settings')),
+    h('div',{className:'tab-bar'},
+      [['lists','Manage Drop-Down Lists'],['password','Change Password'],['about','About']].map(([k,lbl])=>
+        h('div',{key:k,className:'tab'+(tab===k?' active':''),onClick:()=>setTab(k)},lbl)
+      )
+    ),
+    tab==='lists'&&h('div',{className:'card'},
+      h('div',{className:'card-title',style:{marginBottom:14}},'Manage All Drop-Down Lists'),
+      h('div',{style:{display:'flex',gap:10,marginBottom:14}},
+        h('select',{value:selKey,onChange:e=>setSelKey(e.target.value),style:{minWidth:220,padding:'8px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}},
+          Object.keys(lists).map(k=>h('option',{key:k,value:k},k.replace(/([A-Z])/g,' $1').trim()))
+        )
+      ),
+      h('div',{style:{display:'flex',gap:8,marginBottom:12}},
+        h('input',{type:'text',value:nv,onChange:e=>setNv(e.target.value),placeholder:'Add new item...',onKeyDown:e=>e.key==='Enter'&&addItem(),style:{flex:1,padding:'8px 10px',border:'1.5px solid var(--gray-border)',borderRadius:'var(--radius)',fontFamily:'var(--font)',fontSize:13}}),
+        h('button',{className:'btn btn-primary',onClick:addItem},h(Icon,{name:'plus',size:14}),' Add')
+      ),
+      h('div',{style:{maxHeight:320,overflowY:'auto'}},
+        (lists[selKey]||[]).map((item,idx)=>h('div',{key:idx,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',borderBottom:'1px solid #f0f4f8',background:idx%2===0?'#fafafa':'#fff'}},
+          h('span',{style:{fontSize:13}},item),
+          h('button',{className:'btn btn-danger btn-xs',onClick:()=>removeItem(idx)},h(Icon,{name:'trash',size:12}))
+        ))
+      )
+    ),
+    tab==='password'&&h('div',{className:'card',style:{maxWidth:420}},
+      h('div',{className:'card-title',style:{marginBottom:16}},'Change Password'),
+      pwMsg&&h('div',{className:'info-banner '+(pwMsg.startsWith('error:')?'info-red':'info-green')},pwMsg.split(':')[1]),
+      h(FG,{label:'Current Password'},h('input',{type:'password',value:pwForm.cur,onChange:e=>setPwForm(f=>({...f,cur:e.target.value}))})),
+      h(FG,{label:'New Password'},h('input',{type:'password',value:pwForm.nw,onChange:e=>setPwForm(f=>({...f,nw:e.target.value})),placeholder:'8+ chars, uppercase, number, symbol'})),
+      h(FG,{label:'Confirm Password'},h('input',{type:'password',value:pwForm.conf,onChange:e=>setPwForm(f=>({...f,conf:e.target.value}))})),
+      h('button',{className:'btn btn-primary',onClick:changePw},'Update Password')
+    ),
+    tab==='about'&&h('div',{className:'card',style:{textAlign:'center',padding:'32px'}},
+      h(VitaLogo,{dark:true,width:160}),
+      h('p',{style:{fontSize:14,color:'var(--gray)',marginTop:12}},'VITA Operations & Service Portal'),
+      h('p',{style:{fontSize:12,color:'var(--gray2)',marginTop:6}},'Data stored on JSONBin cloud — syncs across all devices in real time'),
+      h('p',{style:{fontSize:11,color:'var(--gray2)',marginTop:16}},'© 2024 VITA Detection. All rights reserved.')
+    )
+  );
+}
+
+// -- MAIN APP ------------------------------------------------------------------
+function App() {
+  const [loading, setLoading] = useState(true);
+  const [loadMsg, setLoadMsg] = useState('Connecting to cloud...');
+  const [db, setDb] = useState(null);
+  const [syncStatus, setSyncStatus] = useState('ok'); // ok | syncing | error
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState('dashboard');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginErr, setLoginErr] = useState('');
+  const [showNotif, setShowNotif] = useState(false);
+  const notifRef = useRef(null);
+  const saveTimer = useRef(null);
+
+  // Load data on mount -- JSONBin with localStorage fallback
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoadMsg('Loading VITA Service Portal...');
+        let data = await Api.read();
+        if (!data || !data.users || data.users.length === 0) {
+          setLoadMsg('First time setup...');
+          data = JSON.parse(JSON.stringify(EMPTY_DB));
+          await Api.write(data);
+        }
+        setDb(data);
+        const sess = sessionStorage.getItem('vita_user');
+        if (sess) { try { setUser(JSON.parse(sess)); } catch {} }
+      } catch(e) {
+        // Last resort -- start completely fresh
+        const data = JSON.parse(JSON.stringify(EMPTY_DB));
+        try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch {}
+        setDb(data);
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  // Debounced save to JSONBin
+  const saveToCloud = useCallback((newDb) => {
+    setSyncStatus('syncing');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await Api.write(newDb);
+        setSyncStatus('ok');
+      } catch(e) {
+        setSyncStatus('error');
+        setTimeout(() => setSyncStatus('ok'), 3000);
+      }
+    }, 800);
+  }, []);
+
+  const handleDbChange = useCallback((newDb, save=false) => {
+    setDb(newDb);
+    if (save) saveToCloud(newDb);
+  }, [saveToCloud]);
+
+  // Close notif panel on outside click
+  useEffect(() => {
+    const h = e => { if(notifRef.current && !notifRef.current.contains(e.target)) setShowNotif(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  // Loading screen
+  if (loading || !db) return h('div',{className:'loading-screen'},
+    h(VitaLogo,{dark:false,width:160}),
+    h('div',{className:'spinner'}),
+    h('div',{className:'loading-msg'},loadMsg)
+  );
+
+  // Login screen
+  if (!user) {
+    const doLogin = () => {
+      const u = (db.users||[]).find(x=>x.email.trim().toLowerCase()===email.trim().toLowerCase() && x.password===password);
+      if (!u) { setLoginErr('Invalid email or password'); return; }
+      if (!u.active) { setLoginErr('Account inactive. Contact your administrator.'); return; }
+      setUser(u);
+      sessionStorage.setItem('vita_user', JSON.stringify(u));
+      setLoginErr('');
+    };
+    return h('div',{className:'auth-wrap'},
+      h('div',{className:'auth-card'},
+        h('div',{className:'auth-logo'},
+          h(VitaLogo,{dark:true,width:140}),
+          h('p',null,'VITA — Operations & Service Portal')
+        ),
+        h('div',{className:'auth-title'},'Sign In'),
+        h('div',{className:'auth-sub'},'Use your VITA email and password'),
+        loginErr&&h('div',{className:'auth-err'},loginErr),
+        h('input',{type:'email',placeholder:'Email address',value:email,className:'auth-input',onChange:e=>setEmail(e.target.value),onKeyDown:e=>e.key==='Enter'&&doLogin()}),
+        h('input',{type:'password',placeholder:'Password',value:password,className:'auth-input',onChange:e=>setPassword(e.target.value),onKeyDown:e=>e.key==='Enter'&&doLogin()}),
+        h('button',{className:'auth-btn',onClick:doLogin},'Sign In'),
+        h('p',{style:{fontSize:11,color:'var(--gray2)',textAlign:'center',marginTop:16}},'Default admin: admin@vita.com / Admin@123')
+      )
+    );
+  }
+
+  const hasPerm = p => !p || user.role==='Admin' || (user.permissions&&user.permissions[p]);
+  const logout = () => { setUser(null); sessionStorage.removeItem('vita_user'); };
+
+  const unread = (db.notifications||[]).filter(n=>(!n.read)&&(n.userId===user.id||user.role==='Admin')).length;
+
+  const NAV = [
+    {id:'dashboard',label:'Dashboard',icon:'home',perm:null},
+    {id:'tickets',label:'Tickets',icon:'ticket',perm:'tickets'},
+    {id:'machines',label:'Machines',icon:'machine',perm:'machines'},
+    {id:'customers',label:'Customers / CRM',icon:'crm',perm:'customers'},
+    {id:'parts',label:'Spare Parts',icon:'parts',perm:'parts'},
+    {id:'rma',label:'RMA',icon:'rma',perm:'rma'},
+    {id:'tools',label:'Tools',icon:'tool',perm:'tools'},
+    {id:'reports',label:'Reports',icon:'report',perm:'reports'},
+  ];
+  const ADMIN_NAV = [
+    {id:'users',label:'Users',icon:'users',perm:'users'},
+    {id:'settings',label:'Settings',icon:'settings',perm:null},
+  ];
+  const PAGE_TITLES = {dashboard:'Dashboard',tickets:'Tickets',machines:'Machines / Scanners',customers:'Customers / CRM',parts:'Spare Parts',rma:'RMA',tools:'Tools & Equipment',reports:'Reports',users:'Users & Permissions',settings:'Settings'};
+
+  const syncLabel = syncStatus==='syncing'?'Syncing...':syncStatus==='error'?'Saved locally':'Synced ✓';
+
+  return h('div',{className:'app'},
+    // SIDEBAR
+    h('div',{className:'sidebar'},
+      h('div',{className:'sidebar-logo'},
+        h(VitaLogo,{dark:false,width:120}),
+        h('span',{className:'sidebar-logo-sub'},'Service Portal')
+      ),
+      h('div',{className:'nav-label'},'General'),
+      NAV.filter(n=>hasPerm(n.perm)).map(n=>
+        h('div',{key:n.id,className:'nav-item'+(page===n.id?' active':''),onClick:()=>setPage(n.id)},
+          h(Icon,{name:n.icon,size:17}), n.label,
+          n.id==='tickets'&&unread>0&&h('span',{className:'nav-badge'},unread)
+        )
+      ),
+      (user.role==='Admin'||(db.users||[]).find(u=>u.id===user.id&&(u.permissions?.users)))&&h('div',{className:'nav-label'},'Admin'),
+      ADMIN_NAV.filter(n=>hasPerm(n.perm)).map(n=>
+        h('div',{key:n.id,className:'nav-item'+(page===n.id?' active':''),onClick:()=>setPage(n.id)},
+          h(Icon,{name:n.icon,size:17}), n.label
+        )
+      ),
+      h('div',{className:'sidebar-footer'},
+        h('div',{className:'user-pill',onClick:logout},
+          h('div',{className:'avatar',style:{width:30,height:30,fontSize:11}},initials(user.name)),
+          h('div',{style:{flex:1,overflow:'hidden'}},
+            h('div',{style:{fontSize:12,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},user.name),
+            h('div',{style:{fontSize:10,opacity:.6}},user.role+' - Sign out')
+          ),
+          h(Icon,{name:'logout',size:13,style:{opacity:.5}})
+        )
+      )
+    ),
+    // MAIN
+    h('div',{className:'main'},
+      h('div',{className:'topbar'},
+        h('div',{className:'topbar-title'},PAGE_TITLES[page]||''),
+        h('div',{className:'topbar-right'},
+          h('div',{className:'sync-indicator'},
+            h('div',{className:'sync-dot'+( syncStatus==='syncing'?' syncing':syncStatus==='error'?' error':'')}),
+            syncLabel
+          ),
+          h('div',{style:{position:'relative'},ref:notifRef},
+            h('button',{className:'notif-btn',onClick:()=>setShowNotif(v=>!v)},
+              h(Icon,{name:'bell',size:17}),
+              unread>0&&h('div',{className:'notif-dot'})
+            ),
+            showNotif&&h(NotifPanel,{db,userId:user.id,onClose:()=>setShowNotif(false),onDbChange:handleDbChange})
+          ),
+          h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'5px 12px',background:'var(--gray-light)',borderRadius:'var(--radius)',border:'1px solid var(--gray-border)'}},
+            h('div',{className:'avatar',style:{width:26,height:26,fontSize:11,background:'var(--navy)'}},initials(user.name)),
+            h('span',{style:{fontSize:13,fontWeight:500}},user.name),
+            h('span',{className:'badge '+rc(user.role)},user.role)
+          )
+        )
+      ),
+      h('div',{className:'content'},
+        page==='dashboard' && h(Dashboard,{db,user}),
+        page==='tickets' && hasPerm('tickets') && h(TicketsPage,{db,user,onDbChange:handleDbChange}),
+        page==='machines' && hasPerm('machines') && h(MachinesPage,{db,user,onDbChange:handleDbChange}),
+        page==='customers' && hasPerm('customers') && h(CustomersPage,{db,user,onDbChange:handleDbChange}),
+        page==='parts' && hasPerm('parts') && h(PartsPage,{db,user,onDbChange:handleDbChange}),
+        page==='rma' && hasPerm('rma') && h(RMAPage,{db,user,onDbChange:handleDbChange}),
+        page==='tools' && hasPerm('tools') && h(ToolsPage,{db,user,onDbChange:handleDbChange}),
+        page==='reports' && hasPerm('reports') && h(ReportsPage,{db}),
+        page==='users' && hasPerm('users') && h(UsersPage,{db,user,onDbChange:handleDbChange}),
+        page==='settings' && h(SettingsPage,{db,user,onDbChange:handleDbChange}),
+        !hasPerm(NAV.find(n=>n.id===page)?.perm) && page!=='dashboard' && page!=='settings' && page!=='users' &&
+          h('div',{className:'card',style:{textAlign:'center',padding:48}},
+            h('div',{style:{fontSize:40,marginBottom:12}},'🔒'),
+            h('h3',{style:{color:'var(--navy)',marginBottom:8}},'Access Restricted'),
+            h('p',{style:{color:'var(--gray)',fontSize:14}},'You do not have permission to access this page.')
+          )
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App, null));
+</script>
+</body>
+</html>
